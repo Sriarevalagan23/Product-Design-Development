@@ -1,19 +1,62 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Badge, Card, BtnSecondary, BtnOutline } from '@/components/ui/MediComponents';
-
-const info = [
-  { l: 'Date of birth',      v: '12 Jan 2003' },
-  { l: 'Blood group',        v: 'O+' },
-  { l: 'Height / Weight',    v: '170 cm / 65 kg' },
-  { l: 'Allergies',          v: 'Penicillin' },
-  { l: 'Emergency contact',  v: '+91 98765 43210' },
-];
+import { supabase } from '@/lib/supabase';
 
 export default function ProfileScreen() {
+  const [profile, setProfile] = useState<{ 
+    full_name: string; 
+    email: string; 
+    dob: string; 
+    blood_group: string;
+    phone?: string;
+    height?: number;
+    weight?: number;
+    allergies?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    async function loadProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        if (data) setProfile(data);
+      }
+    }
+    loadProfile();
+  }, []);
+
+  const getInitials = (fullName: string | undefined) => {
+    if (!fullName) return 'U';
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
+  const initials = getInitials(profile?.full_name);
+  const name = profile?.full_name || 'User';
+  const email = profile?.email || '';
+
+  const info = [
+    { l: 'Date of birth',      v: profile?.dob || '-' },
+    { l: 'Blood group',        v: profile?.blood_group || '-' },
+    { l: 'Height / Weight',    v: profile?.height || profile?.weight ? `${profile?.height || '-'} cm / ${profile?.weight || '-'} kg` : '-' },
+    { l: 'Allergies',          v: profile?.allergies || '-' },
+    { l: 'Emergency contact',  v: profile?.phone || '-' },
+  ];
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.replace('/login');
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -28,10 +71,10 @@ export default function ProfileScreen() {
         {/* Avatar card */}
         <Card style={styles.avatarCard}>
           <LinearGradient colors={['#0a7aff', '#3a9bff']} style={styles.avatar}>
-            <Text style={styles.avatarText}>SR</Text>
+            <Text style={styles.avatarText}>{initials}</Text>
           </LinearGradient>
-          <Text style={styles.name}>Srinidhi R</Text>
-          <Text style={styles.email}>srinidhi@email.com</Text>
+          <Text style={styles.name}>{name}</Text>
+          <Text style={styles.email}>{email}</Text>
           <Badge label="Patient" type="blue" />
         </Card>
 
@@ -46,11 +89,24 @@ export default function ProfileScreen() {
           ))}
         </Card>
 
-        <BtnSecondary onPress={() => {}}>Download my records</BtnSecondary>
-        <BtnOutline onPress={() => router.push('/about')}>About & help</BtnOutline>
-        <TouchableOpacity style={styles.settingsBtn} onPress={() => router.push('/settings')} activeOpacity={0.8}>
-          <Text style={styles.settingsBtnText}>Settings</Text>
-        </TouchableOpacity>
+        {/* Actions Card */}
+        <Card style={styles.actionCard}>
+          <TouchableOpacity style={styles.listRow} activeOpacity={0.7} onPress={() => {}}>
+            <Text style={styles.listRowText}>Download my records</Text>
+            <Text style={styles.chevron}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.listRow, styles.borderTop]} activeOpacity={0.7} onPress={() => router.push('/about')}>
+            <Text style={styles.listRowText}>About & help</Text>
+            <Text style={styles.chevron}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.listRow, styles.borderTop]} activeOpacity={0.7} onPress={() => router.push('/settings')}>
+            <Text style={styles.listRowText}>Settings</Text>
+            <Text style={styles.chevron}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.listRow, styles.borderTop]} activeOpacity={0.7} onPress={handleSignOut}>
+            <Text style={[styles.listRowText, { color: Colors.red[500] }]}>Sign out</Text>
+          </TouchableOpacity>
+        </Card>
       </ScrollView>
     </View>
   );
@@ -76,6 +132,9 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: Colors.cloud[50] },
   infoKey: { fontSize: 11, color: Colors.gray[500] },
   infoVal: { fontSize: 11, fontWeight: '700', color: Colors.gray[800] },
-  settingsBtn: { borderRadius: 99, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: Colors.gray[200] },
-  settingsBtnText: { fontSize: 13, fontWeight: '600', color: Colors.gray[600] },
+  actionCard: { paddingHorizontal: 16, paddingVertical: 4 },
+  listRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14 },
+  borderTop: { borderTopWidth: 1, borderTopColor: Colors.cloud[50] },
+  listRowText: { fontSize: 13, color: Colors.gray[700], fontWeight: '600' },
+  chevron: { fontSize: 20, color: Colors.gray[400] },
 });

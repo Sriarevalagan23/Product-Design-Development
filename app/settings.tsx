@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
-import { Colors } from '@/constants/Colors';
 import { Card, Toggle, TopBar } from '@/components/ui/MediComponents';
+import { Colors } from '@/constants/Colors';
+import { router } from 'expo-router';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SettingsScreen() {
   const [toggles, setToggles] = useState({ notifs: true, reminders: true, dark: false, bio: true });
   const t = (k: keyof typeof toggles) => () => setToggles((p) => ({ ...p, [k]: !p[k] }));
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.container}>
+      <View style={{ height: insets.top, backgroundColor: Colors.white }} />
       <TopBar title="Settings" onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Preferences */}
@@ -17,8 +20,8 @@ export default function SettingsScreen() {
           <Text style={styles.sectionLabel}>PREFERENCES</Text>
           {[
             { label: 'Push notifications', key: 'notifs' as const },
-            { label: 'Health reminders',   key: 'reminders' as const },
-            { label: 'Dark mode',          key: 'dark' as const },
+            { label: 'Health reminders', key: 'reminders' as const },
+            { label: 'Dark mode', key: 'dark' as const },
           ].map(({ label, key }) => (
             <View key={key} style={styles.row}>
               <Text style={styles.rowLabel}>{label}</Text>
@@ -46,7 +49,7 @@ export default function SettingsScreen() {
 
         {/* Sign out */}
         <TouchableOpacity style={styles.signOut} onPress={() => router.replace('/login')} activeOpacity={0.85}>
-          <Text style={styles.signOutIcon}>🚪</Text>
+
           <Text style={styles.signOutText}>Sign out</Text>
         </TouchableOpacity>
       </ScrollView>

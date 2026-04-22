@@ -3,6 +3,7 @@ import { Colors } from '@/constants/Colors';
 import { router } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const helpItems = [
   'How to use the app',
@@ -13,8 +14,11 @@ const helpItems = [
 ];
 
 export default function AboutScreen() {
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={styles.container}>
+      <View style={{ height: insets.top, backgroundColor: Colors.white }} />
       <TopBar title="About & help" onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Logo card */}

@@ -1,4 +1,5 @@
 import { Colors, Gradients } from '@/constants/Colors';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
@@ -14,15 +15,11 @@ import {
 
 // ─── Eye Icons (for password visibility toggle) ────────────────────────────────
 export const EyeIcon = ({ size = 20, color = Colors.gray[500] }: { size?: number; color?: string }) => (
-  <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-    <Text style={{ fontSize: size * 0.8, color }}>👁</Text>
-  </View>
+  <Ionicons name="eye" size={size} color={color} />
 );
 
 export const EyeOffIcon = ({ size = 20, color = Colors.gray[500] }: { size?: number; color?: string }) => (
-  <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-    <Text style={{ fontSize: size * 0.8, color }}>👁‍🗨</Text>
-  </View>
+  <Ionicons name="eye-off" size={size} color={color} />
 );
 
 // ─── Badge ────────────────────────────────────────────────────────────────────
@@ -83,7 +80,7 @@ export const InputField = ({ label, icon, rightIcon, ...props }: InputFieldProps
     <View style={styles.fieldInputContainer}>
       {icon && <View style={styles.fieldIcon}>{icon}</View>}
       <TextInput
-        style={[styles.fieldInput, icon && { marginLeft: 36 }]}
+        style={[styles.fieldInput, icon ? { marginLeft: 36 } : undefined]}
         placeholderTextColor={Colors.gray[400]}
         {...props}
       />
@@ -243,6 +240,6 @@ const styles = StyleSheet.create({
   },
   topBarBack: { width: 32, height: 32, borderRadius: 12, backgroundColor: Colors.cloud[50], alignItems: 'center', justifyContent: 'center' },
   topBarBackText: { fontSize: 22, color: Colors.cloud[500], lineHeight: 26 },
-  topBarTitle: { fontSize: 14, fontWeight: '600', color: Colors.gray[800] },
+  topBarTitle: { fontSize: 18, fontWeight: '700', color: Colors.gray[800] },
   topBarRight: { fontSize: 12, fontWeight: '700', color: Colors.cloud[500] },
 });

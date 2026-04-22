@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Card, TopBar } from '@/components/ui/MediComponents';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const items = [
   { title: 'Report ready',       desc: 'Blood test results uploaded successfully.',                              time: '2 min ago',   dot: Colors.cloud[500],   bg: Colors.cloud[50] },
@@ -12,8 +13,11 @@ const items = [
 ];
 
 export default function NotificationsScreen() {
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={styles.container}>
+      <View style={{ height: insets.top, backgroundColor: Colors.white }} />
       <TopBar
         title="Notifications"
         onBack={() => router.back()}

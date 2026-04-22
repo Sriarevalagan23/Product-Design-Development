@@ -1,46 +1,89 @@
-import React from 'react';
-import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet,
-} from 'react-native';
+import { Badge, Card } from '@/components/ui/MediComponents';
+import { Colors } from '@/constants/Colors';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Colors } from '@/constants/Colors';
-import { Badge, Card } from '@/components/ui/MediComponents';
+import { supabase } from '@/lib/supabase';
+import React, { useEffect, useState } from 'react';
+import {
+  ScrollView, StyleSheet,
+  Text, TouchableOpacity,
+  View,
+} from 'react-native';
 
 const vitals = [
   { label: 'Blood Pressure', val: '118/76', unit: 'mmHg', badge: 'OK', type: 'green' as const },
-  { label: 'Glucose',        val: '108',    unit: 'mg/dL', badge: 'Watch', type: 'yellow' as const },
-  { label: 'Heart Rate',     val: '72',     unit: 'bpm',   badge: 'OK', type: 'green' as const },
-  { label: 'BMI',            val: '22.4',   unit: '',      badge: 'OK', type: 'green' as const },
+  { label: 'Glucose', val: '108', unit: 'mg/dL', badge: 'Watch', type: 'yellow' as const },
+  { label: 'Heart Rate', val: '72', unit: 'bpm', badge: 'OK', type: 'green' as const },
+  { label: 'BMI', val: '22.4', unit: '', badge: 'OK', type: 'green' as const },
 ];
 
 const recentReports = [
   { name: 'Blood test — CBC', date: '15 Mar 2026', badge: 'Normal', type: 'green' as const },
-  { name: 'Lipid profile',    date: '02 Mar 2026', badge: 'Review', type: 'yellow' as const },
+  { name: 'Lipid profile', date: '02 Mar 2026', badge: 'Review', type: 'yellow' as const },
 ];
 
 const quickActions = [
-  { label: 'Upload',  emoji: '📤', route: '/upload' },
+  { label: 'Upload', emoji: '📤', route: '/upload' },
   { label: 'Predict', emoji: '🔬', route: '/enter-vitals' },
-  { label: 'Trends',  emoji: '📊', route: '/(tabs)/health-trends' },
+  { label: 'Trends', emoji: '📊', route: '/(tabs)/health-trends' },
 ];
 
 export default function DashboardScreen() {
+  const [userName, setUserName] = useState('...');
+  const [initials, setInitials] = useState('');
+
+  useEffect(() => {
+    async function loadProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .single();
+
+        if (data && data.full_name) {
+          const firstName = data.full_name.split(' ')[0];
+          setUserName(firstName);
+          
+          const parts = data.full_name.trim().split(/\s+/);
+          if (parts.length === 1) {
+            setInitials(parts[0].substring(0, 2).toUpperCase());
+          } else {
+            setInitials((parts[0][0] + parts[parts.length - 1][0]).toUpperCase());
+          }
+        } else {
+          setUserName('User');
+          setInitials('U');
+        }
+      }
+    }
+    loadProfile();
+  }, []);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning,';
+    if (hour < 18) return 'Good afternoon,';
+    return 'Good evening,';
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Good morning,</Text>
-          <Text style={styles.name}>Srinidhi 👋</Text>
+          <Text style={styles.greeting}>{getGreeting()}</Text>
+          <Text style={styles.name}>{userName}</Text>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/notifications')} activeOpacity={0.8}>
-            <Text>🔔</Text>
+            <Ionicons name="notifications-outline" size={20} color={Colors.gray[800]} />
             <View style={styles.notifDot} />
           </TouchableOpacity>
           <LinearGradient colors={['#0a7aff', '#3a9bff']} style={styles.avatar}>
-            <Text style={styles.avatarText}>SR</Text>
+            <Text style={styles.avatarText}>{initials}</Text>
           </LinearGradient>
         </View>
       </View>

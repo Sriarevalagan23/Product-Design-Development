@@ -1,21 +1,50 @@
 import { BtnPrimary, EyeIcon, EyeOffIcon, InputField } from '@/components/ui/MediComponents';
 import { Colors } from '@/constants/Colors';
+import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // Email validation regex
+  // Email validation
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
   const isEmailInvalid = email.length > 0 && !validateEmail(email);
+
+  const handleLogin = async () => {
+    if (!email || !pass) {
+      Alert.alert('Missing fields', 'Please enter your email and password.');
+      return;
+    }
+    if (!validateEmail(email)) {
+      Alert.alert('Invalid email', 'Please enter a valid email address.');
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    setLoading(false);
+
+    if (error) {
+      if (error.message.includes('Invalid login credentials')) {
+        Alert.alert('Login failed', 'Incorrect email or password.');
+      } else if (error.message.includes('Email not confirmed')) {
+        Alert.alert('Email not confirmed', 'Please check your inbox and confirm your email first.');
+      } else {
+        Alert.alert('Login failed', error.message);
+      }
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -49,7 +78,7 @@ export default function LoginScreen() {
             secureTextEntry={!showPassword}
             icon={<Text style={{ fontSize: 18, color: Colors.cloud[500] }}>🔒</Text>}
             rightIcon={
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 {showPassword ? <EyeIcon size={18} color={Colors.gray[500]} /> : <EyeOffIcon size={18} color={Colors.gray[500]} />}
               </TouchableOpacity>
             }
@@ -60,8 +89,8 @@ export default function LoginScreen() {
         </View>
 
         {/* Sign In Button */}
-        <BtnPrimary onPress={() => router.replace('/(tabs)')} style={styles.signInBtn}>
-          Sign in →
+        <BtnPrimary onPress={handleLogin} style={styles.signInBtn}>
+          {loading ? 'Signing in…' : 'Sign in →'}
         </BtnPrimary>
 
       

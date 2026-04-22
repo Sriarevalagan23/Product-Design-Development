@@ -2,6 +2,7 @@ import { Colors, Gradients } from '@/constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function SplashScreen() {
@@ -9,6 +10,12 @@ export default function SplashScreen() {
   const slideAnim = React.useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        router.replace('/(tabs)');
+      }
+    });
+
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
