@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "PHR_App",
-    "slug": "PHR_App",
+    "name": "Medex",
+    "slug": "medex",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "phrapp",
+    "scheme": "medex",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
