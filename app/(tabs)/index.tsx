@@ -82,9 +82,11 @@ export default function DashboardScreen() {
             <Ionicons name="notifications-outline" size={20} color={Colors.gray[800]} />
             <View style={styles.notifDot} />
           </TouchableOpacity>
-          <LinearGradient colors={['#0a7aff', '#3a9bff']} style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </LinearGradient>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/profile')} activeOpacity={0.8}>
+            <LinearGradient colors={['#0a7aff', '#3a9bff']} style={styles.avatar}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       </View>
 

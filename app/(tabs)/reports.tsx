@@ -1,27 +1,50 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import React, { useState, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Badge, Card } from '@/components/ui/MediComponents';
+import { getUserDocuments, UserDocument } from '@/lib/documents';
+import { supabase } from '@/lib/supabase';
 
-const allReports = [
-  { name: 'Blood test — CBC', date: '15 Mar · Apollo',         badge: 'Normal', type: 'green'  as const, cat: 'Blood' },
-  { name: 'Lipid profile',    date: '02 Mar · Govt Hospital',  badge: 'Review', type: 'yellow' as const, cat: 'Blood' },
-  { name: 'X-ray chest PA',   date: '18 Feb · Vijaya',         badge: 'Clear',  type: 'green'  as const, cat: 'Scan'  },
-  { name: 'Prescription Jan', date: '10 Jan · Dr. Ravi Kumar', badge: 'Rx',     type: 'blue'   as const, cat: 'Rx'   },
-];
-
-const filters = ['All', 'Blood', 'Scan', 'Rx'];
+const filters = ['All', 'Blood Test', 'General Medical', 'ECG', 'X-ray / Scan', 'Prescription', 'Other'];
 
 export default function ReportsScreen() {
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
+  const [reports, setReports] = useState<UserDocument[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const shown = allReports.filter(
-    (r) =>
-      (filter === 'All' || r.cat === filter) &&
-      r.name.toLowerCase().includes(search.toLowerCase()),
+  useFocusEffect(
+    useCallback(() => {
+      async function loadReports() {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const docs = await getUserDocuments(user.id);
+            setReports(docs);
+          }
+        } catch (error) {
+          console.error("Failed to load reports:", error);
+        } finally {
+          setLoading(false);
+        }
+      }
+      loadReports();
+    }, [])
   );
+
+  const shown = reports.filter(
+    (r) =>
+      (filter === 'All' || r.report_category?.includes(filter)) &&
+      r.report_name?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const formatSubtitle = (r: UserDocument) => {
+    let parts = [];
+    if (r.report_date) parts.push(r.report_date);
+    if (r.hospital_name) parts.push(r.hospital_name);
+    return parts.join(' · ') || 'Recently uploaded';
+  };
 
   return (
     <View style={styles.container}>
@@ -62,20 +85,24 @@ export default function ReportsScreen() {
 
         {/* List */}
         <Card>
-          {shown.length > 0 ? (
+          {loading ? (
+            <View style={styles.empty}>
+              <ActivityIndicator size="small" color={Colors.cloud[500]} />
+            </View>
+          ) : shown.length > 0 ? (
             shown.map((r, i) => (
               <TouchableOpacity
-                key={i}
+                key={r.id}
                 style={[styles.reportRow, i > 0 && styles.borderTop]}
-                onPress={() => router.push('/report-detail')}
+                onPress={() => router.push(`/report-detail?id=${r.id}`)}
                 activeOpacity={0.8}
               >
                 <View style={styles.reportIcon}><Text>📄</Text></View>
                 <View style={styles.reportInfo}>
-                  <Text style={styles.reportName}>{r.name}</Text>
-                  <Text style={styles.reportDate}>{r.date}</Text>
+                  <Text style={styles.reportName}>{r.report_name}</Text>
+                  <Text style={styles.reportDate}>{formatSubtitle(r)}</Text>
                 </View>
-                <Badge label={r.badge} type={r.type} />
+                <Badge label="Saved" type="blue" />
               </TouchableOpacity>
             ))
           ) : (
