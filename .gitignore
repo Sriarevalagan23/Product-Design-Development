@@ -41,3 +41,15 @@ app-example
 # generated native folders
 /ios
 /android
+
+# OCR Backend & Python
+OCR_backend/venv/
+OCR_backend/__pycache__/
+OCR_backend/temp*
+OCR_backend/*.pdf
+OCR_backend/*.jpg
+OCR_backend/*.png
+.pytest_cache/
+__pycache__/
+venv/
+.env
