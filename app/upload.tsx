@@ -156,7 +156,7 @@ export default function UploadScreen() {
         throw new Error("You must be logged in to upload documents.");
       }
 
-      // Generate filePath synchronously so we can save DB record instantly
+      // Generate filePath so the DB record and storage path stay in sync
       const timestamp = new Date().getTime();
       const safeName = file.name || 'document';
       const cleanFileName = safeName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
@@ -175,8 +175,17 @@ export default function UploadScreen() {
         }
       }
 
-      // 1. Save document metadata to the Database FIRST so the user doesn't wait
-      const savedDoc = await saveUserDocument({
+      // 1. Upload file to Supabase Storage
+      await uploadDocumentFile(
+        user.id,
+        file.uri,
+        file.name,
+        file.mimeType || 'application/octet-stream',
+        filePath
+      );
+
+      // 2. Save document metadata to the database
+      await saveUserDocument({
         user_id: user.id,
         report_category: currentType.label,
         report_name: reportName.trim(),
@@ -189,52 +198,9 @@ export default function UploadScreen() {
         file_size: file.size,
       });
 
-      // 2. Alert success and navigate back instantly!
-      Alert.alert("Success", "Report uploaded successfully! We are analyzing the document in the background.");
+      // 3. Navigate back and show success
+      Alert.alert("Success", "Report saved successfully!");
       router.back();
-
-      // 3. Do Storage Upload and OCR Extraction in the background
-      // We do NOT await this IIFE so it doesn't block the UI
-      (async () => {
-        try {
-          // A) Upload to Supabase Storage
-          await uploadDocumentFile(
-            user.id,
-            file.uri,
-            file.name,
-            file.mimeType || 'application/octet-stream',
-            filePath
-          );
-
-          // B) Send to OCR Backend
-          const formData = new FormData();
-          formData.append('file', {
-            uri: file.uri,
-            type: file.mimeType || 'application/pdf',
-            name: file.name || 'report.pdf',
-          } as any);
-
-          const ocrResponse = await fetch('http://172.23.23.180:5001/ocr', {
-            method: 'POST',
-            body: formData,
-          });
-
-          if (ocrResponse.ok) {
-            const result = await ocrResponse.json();
-            if (result.text) {
-              // Update the document silently in the background
-              await supabase
-                .from('user_documents')
-                .update({ extracted_text: result.text })
-                .eq('id', savedDoc.id);
-            }
-          } else {
-            console.warn('OCR Backend error:', ocrResponse.statusText);
-          }
-        } catch (bgErr) {
-          console.warn('Background processing failed:', bgErr);
-        }
-      })();
     } catch (err: any) {
       console.error(err);
       Alert.alert("Upload Failed", err.message || "An error occurred during upload.");

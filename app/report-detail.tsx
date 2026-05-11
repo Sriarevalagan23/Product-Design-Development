@@ -1,17 +1,112 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import {
+  View, Text, ScrollView, StyleSheet, ActivityIndicator,
+  TouchableOpacity, Modal, Image, Dimensions, StatusBar,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Colors } from '@/constants/Colors';
-import { Badge, Card, BtnSecondary, BtnOutline, TopBar } from '@/components/ui/MediComponents';
+import { BtnSecondary, TopBar } from '@/components/ui/MediComponents';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { UserDocument } from '@/lib/documents';
-import * as WebBrowser from 'expo-web-browser';
+import { LinearGradient } from 'expo-linear-gradient';
+import { WebView } from 'react-native-webview';
 
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+
+// ── File type helpers ────────────────────────────────────────────────────────
+function isImage(mimeType?: string, fileName?: string) {
+  if (mimeType) return mimeType.startsWith('image/');
+  const ext = (fileName || '').split('.').pop()?.toLowerCase();
+  return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'].includes(ext || '');
+}
+
+function isPdf(mimeType?: string, fileName?: string) {
+  if (mimeType) return mimeType === 'application/pdf';
+  return (fileName || '').toLowerCase().endsWith('.pdf');
+}
+
+// ── In-app full-screen document viewer (images + PDFs) ──────────────────────
+function DocViewer({
+  url, isImg, visible, onClose,
+}: {
+  url: string; isImg: boolean; visible: boolean; onClose: () => void;
+}) {
+  const [webLoading, setWebLoading] = useState(true);
+
+  return (
+    <Modal visible={visible} animationType="slide" statusBarTranslucent>
+      <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
+      <View style={dv.root}>
+        {/* Header bar */}
+        <View style={dv.header}>
+          <TouchableOpacity style={dv.closeBtn} onPress={onClose} activeOpacity={0.8}>
+            <Ionicons name="chevron-down" size={22} color="#fff" />
+          </TouchableOpacity>
+          <Text style={dv.headerTitle}>{isImg ? 'Image' : 'Document'}</Text>
+          <View style={{ width: 40 }} />
+        </View>
+
+        {/* Content */}
+        {isImg ? (
+          <View style={dv.imgWrap}>
+            <Image source={{ uri: url }} style={dv.img} resizeMode="contain" />
+          </View>
+        ) : (
+          <View style={{ flex: 1 }}>
+            {webLoading && (
+              <View style={dv.webLoader}>
+                <ActivityIndicator size="large" color="#0a7aff" />
+                <Text style={dv.webLoaderText}>Loading document…</Text>
+              </View>
+            )}
+            <WebView
+              source={{ uri: url }}
+              style={{ flex: 1 }}
+              onLoadStart={() => setWebLoading(true)}
+              onLoadEnd={() => setWebLoading(false)}
+              onError={() => setWebLoading(false)}
+            />
+          </View>
+        )}
+      </View>
+    </Modal>
+  );
+}
+
+const dv = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#0a0a0a' },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: 56, paddingBottom: 14, paddingHorizontal: 16,
+    backgroundColor: '#0a0a0a',
+  },
+  closeBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  headerTitle: { fontSize: 15, fontWeight: '600', color: '#fff' },
+  imgWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  img: { width: SCREEN_W, height: SCREEN_H - 120 },
+  webLoader: {
+    position: 'absolute', inset: 0, zIndex: 10,
+    backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', gap: 10,
+  },
+  webLoaderText: { fontSize: 13, color: Colors.gray[400] },
+});
+
+
+// ── Main screen ──────────────────────────────────────────────────────────────
 export default function ReportDetailScreen() {
-  const { id } = useLocalSearchParams();
+  const { id: rawId } = useLocalSearchParams();
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
+
   const [doc, setDoc] = useState<UserDocument | null>(null);
   const [loading, setLoading] = useState(true);
+  const [publicUrl, setPublicUrl] = useState<string | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   useEffect(() => {
     async function loadDoc() {
@@ -22,7 +117,15 @@ export default function ReportDetailScreen() {
           .select('*')
           .eq('id', id)
           .single();
-        if (data) setDoc(data);
+        if (data) {
+          setDoc(data);
+          if (data.file_url) {
+            const { data: urlData } = supabase.storage
+              .from('user_docs')
+              .getPublicUrl(data.file_url);
+            setPublicUrl(urlData?.publicUrl || null);
+          }
+        }
         if (error) console.error(error);
       } catch (err) {
         console.error(err);
@@ -33,12 +136,14 @@ export default function ReportDetailScreen() {
     loadDoc();
   }, [id]);
 
+  // ── Loading state ──────────────────────────────────────────────────────────
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <TopBar title="Report detail" onBack={() => router.back()} />
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={Colors.cloud[500]} />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 }}>
+          <ActivityIndicator size="large" color="#0a7aff" />
+          <Text style={{ fontSize: 13, color: Colors.gray[400] }}>Loading report…</Text>
         </View>
       </SafeAreaView>
     );
@@ -48,215 +153,209 @@ export default function ReportDetailScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <TopBar title="Report detail" onBack={() => router.back()} />
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ color: Colors.gray[500] }}>Report not found</Text>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 }}>
+          <Ionicons name="document-outline" size={40} color={Colors.gray[300]} />
+          <Text style={{ color: Colors.gray[500], fontSize: 14 }}>Report not found</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  const formatSubtitle = () => {
-    let parts = [];
-    if (doc.report_date) parts.push(doc.report_date);
-    if (doc.hospital_name) parts.push(doc.hospital_name);
-    return parts.join(' · ');
-  };
-
-  const handleViewOriginal = async () => {
-    // We stored the relative filePath in file_url.
-    // Let's get the public signed url or public url
-    const { data: { publicUrl } } = supabase.storage.from('user_docs').getPublicUrl(doc.file_url);
-    if (publicUrl) {
-      await WebBrowser.openBrowserAsync(publicUrl);
-    }
-  };
-
-  const parseOCRText = (text: string) => {
-    if (!text) return { abnormal: [], normal: [] };
-
-    const reports: any[] = [];
-    const lines = text.split('\n');
-
-    // A robust regex to find: Name, Value, Unit(optional), Min, Max
-    const regex = /^([a-zA-Z][a-zA-Z\s\(\)]+?)[:\-]?\s+([\d\.]+)\s*([^0-9\s\(]+)?\s*(?:(?:\(|\[|Normal|Ref|Range)[:\s]*)*([\d\.]+)\s*(?:-|to|–)\s*([\d\.]+)/i;
-
-    for (let line of lines) {
-      line = line.trim();
-      if (!line) continue;
-
-      const m = line.match(regex);
-      if (m) {
-        const name = m[1].trim();
-        const value = parseFloat(m[2]);
-        const unit = m[3] ? m[3].trim() : "";
-        const min = parseFloat(m[4]);
-        const max = parseFloat(m[5]);
-
-        // Skip obvious bad matches
-        if (name.length > 2 && !isNaN(value) && !isNaN(min) && !isNaN(max) && !name.toLowerCase().includes('date')) {
-          reports.push({ name, value, unit, min, max });
-        }
-      }
-    }
-
-    // Fallback global match if line-by-line found nothing
-    if (reports.length === 0) {
-      const globalRegex = /([a-zA-Z][a-zA-Z\s]+?)[:\-]?\s+([\d\.]+)\s*([^0-9\s\(\-\+]+)?\s*(?:(?:\(|\[)?(?:Normal|Ref|Range)?[:\s]*([\d\.]+)\s*(?:-|to|–)\s*([\d\.]+)(?:\)|\])?)/gi;
-      const matches = Array.from(text.matchAll(globalRegex));
-      for (const m of matches) {
-        const name = m[1].trim();
-        const value = parseFloat(m[2]);
-        const unit = m[3] ? m[3].trim() : "";
-        const min = parseFloat(m[4]);
-        const max = parseFloat(m[5]);
-
-        if (name.length > 2 && !isNaN(value) && !isNaN(min) && !isNaN(max) && !name.toLowerCase().includes('date')) {
-          reports.push({ name, value, unit, min, max });
-        }
-      }
-    }
-
-    // De-duplicate by name
-    const uniqueReports = Array.from(new Map(reports.map(item => [item.name, item])).values());
-
-    const abnormal = [];
-    const normal = [];
-
-    for (const test of uniqueReports) {
-      if (test.value < test.min || test.value > test.max) {
-        abnormal.push(test);
-      } else {
-        normal.push(test);
-      }
-    }
-
-    return { abnormal, normal };
-  };
+  const fileIsImage = isImage(doc.file_type, doc.file_name);
+  const fileIsPdf = isPdf(doc.file_type, doc.file_name);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <TopBar title="Report detail" onBack={() => router.back()} rightLabel="Share" onRight={() => { }} />
-      <ScrollView contentContainerStyle={styles.scroll}>
-        {/* Main Info */}
-        <Card style={styles.card}>
-          <View style={styles.reportHeader}>
-            <View style={{ flex: 1, paddingRight: 10 }}>
-              <Text style={styles.reportName}>{doc.report_name}</Text>
-              <Text style={styles.reportMeta}>{formatSubtitle() || 'Recently uploaded'}</Text>
-            </View>
-            <Badge label={doc.report_category || "Saved"} type="blue" />
-          </View>
-          <View style={styles.divider} />
 
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Category:</Text>
-            <Text style={styles.infoValue}>{doc.report_category}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>File Name:</Text>
-            <Text style={styles.infoValue}>{doc.file_name}</Text>
-          </View>
-          {doc.hospital_name ? (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Hospital:</Text>
-              <Text style={styles.infoValue}>{doc.hospital_name}</Text>
-            </View>
-          ) : null}
-          {doc.report_date ? (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Date:</Text>
-              <Text style={styles.infoValue}>{doc.report_date}</Text>
-            </View>
-          ) : null}
-          {doc.additional_notes ? (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Notes:</Text>
-              <Text style={styles.infoValue}>{doc.additional_notes}</Text>
-            </View>
-          ) : null}
-        </Card>
+      {/* In-app full-screen viewer */}
+      {publicUrl && (
+        <DocViewer
+          url={publicUrl}
+          isImg={fileIsImage}
+          visible={viewerOpen}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
 
-        {/* Parsed Insights */}
-        <Card style={styles.aiCard}>
-          <Text style={styles.aiTitle}>🤖 Report Insights</Text>
-          {!doc.extracted_text ? (
-            <Text style={[styles.aiText, { color: Colors.gray[400], fontStyle: 'italic' }]}>
-              Analyzing document text in the background...
-            </Text>
+      <TopBar title="Report detail" onBack={() => router.back()} />
+
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+
+        {/* ── Document preview card ── */}
+        <TouchableOpacity
+          style={styles.previewCard}
+          activeOpacity={publicUrl ? 0.85 : 1}
+          onPress={() => publicUrl && setViewerOpen(true)}
+        >
+          {fileIsImage && publicUrl ? (
+            <>
+              <Image source={{ uri: publicUrl }} style={styles.previewImage} resizeMode="cover" />
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.6)']}
+                style={styles.previewGradient}
+              >
+                <View style={styles.previewTapHint}>
+                  <Ionicons name="expand-outline" size={14} color="#fff" />
+                  <Text style={styles.previewTapText}>Tap to view full screen</Text>
+                </View>
+              </LinearGradient>
+            </>
+          ) : publicUrl ? (
+            // PDF / other — show a live first-page preview via WebView
+            <>
+              <WebView
+                source={{ uri: publicUrl }}
+                style={styles.previewWebView}
+                scrollEnabled={false}
+                pointerEvents="none"
+                scalesPageToFit
+                bounces={false}
+                showsVerticalScrollIndicator={false}
+                showsHorizontalScrollIndicator={false}
+              />
+              {/* Tap-to-open overlay */}
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.55)']}
+                style={styles.previewGradient}
+                pointerEvents="none"
+              >
+                <View style={styles.previewTapHint}>
+                  <Ionicons name="eye-outline" size={14} color="#fff" />
+                  <Text style={styles.previewTapText}>Tap to open</Text>
+                </View>
+              </LinearGradient>
+            </>
           ) : (
-            <View>
-              {(() => {
-                const { abnormal, normal } = parseOCRText(doc.extracted_text || "");
-
-                if (abnormal.length === 0 && normal.length === 0) {
-                  return (
-                    <Text style={styles.aiText}>
-                      We couldn't automatically detect standard tabular test ranges in this document.
-                    </Text>
-                  );
-                }
-
-                return (
-                  <View style={{ gap: 12 }}>
-                    {abnormal.length > 0 ? (
-                      <View style={{ gap: 6 }}>
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: Colors.amber[700] }}>
-                          ⚠️ Values outside normal range:
-                        </Text>
-                        {abnormal.map((t, idx) => (
-                          <View key={idx} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
-                            <Text style={{ fontSize: 14, color: Colors.amber[700] }}>•</Text>
-                            <Text style={{ fontSize: 13, color: Colors.cloud[800], flex: 1 }}>
-                              <Text style={{ fontWeight: '700' }}>{t.name}</Text>: {t.value} {t.unit}
-                              <Text style={{ color: Colors.amber[700], fontWeight: '600' }}>
-                                {t.value > t.max ? ' (High)' : ' (Low)'}
-                              </Text>
-                              {"\n"}
-                              <Text style={{ color: Colors.gray[400], fontSize: 11 }}>Normal Range: {t.min} - {t.max}</Text>
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    ) : (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <Text style={{ fontSize: 16 }}>✅</Text>
-                        <Text style={{ fontSize: 13, fontWeight: '600', color: Colors.emerald[700], flex: 1 }}>
-                          All detected parameters are within normal range.
-                        </Text>
-                      </View>
-                    )}
-
-                    {normal.length > 0 && (
-                      <Text style={{ fontSize: 12, color: Colors.gray[500], fontStyle: 'italic', marginTop: 4 }}>
-                        {abnormal.length > 0 ? 'Other ' : ''}{normal.length} parameter{normal.length > 1 ? 's' : ''} {normal.length === 1 ? 'is' : 'are'} normal.
-                      </Text>
-                    )}
-                  </View>
-                );
-              })()}
+            // No URL yet — simple neutral placeholder
+            <View style={styles.previewPlaceholderEmpty}>
+              <Ionicons name="document-outline" size={42} color={Colors.cloud[300]} />
+              <Text style={styles.previewNoFile}>No file attached</Text>
             </View>
           )}
-        </Card>
+        </TouchableOpacity>
 
-        <BtnOutline onPress={handleViewOriginal}>View original Document</BtnOutline>
-        <BtnSecondary onPress={() => router.push('/voice-chat')}>Ask AI about this report</BtnSecondary>
+        {/* ── Report name + meta card ── */}
+        <View style={styles.metaCard}>
+          {/* Title row */}
+          <View style={styles.titleRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.reportName} numberOfLines={2}>{doc.report_name}</Text>
+              {doc.file_name && (
+                <Text style={styles.reportFileName} numberOfLines={1}>{doc.file_name}</Text>
+              )}
+            </View>
+            {/* Inline secure badge */}
+            <View style={styles.securePill}>
+              <Ionicons name="shield-checkmark-outline" size={11} color="#0a7aff" />
+              <Text style={styles.securePillText}>Saved</Text>
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* Chip grid — 3 fields side by side */}
+          <View style={styles.chipRow}>
+            <View style={styles.chip}>
+              <Ionicons name="folder-outline" size={13} color="#0a7aff" style={{ marginBottom: 4 }} />
+              <Text style={styles.chipLabel}>CATEGORY</Text>
+              <Text style={styles.chipValue} numberOfLines={2}>{doc.report_category || '—'}</Text>
+            </View>
+            <View style={styles.chipDivider} />
+            <View style={styles.chip}>
+              <Ionicons name="business-outline" size={13} color="#0a7aff" style={{ marginBottom: 4 }} />
+              <Text style={styles.chipLabel}>HOSPITAL</Text>
+              <Text style={styles.chipValue} numberOfLines={2}>{doc.hospital_name || '—'}</Text>
+            </View>
+            <View style={styles.chipDivider} />
+            <View style={styles.chip}>
+              <Ionicons name="calendar-outline" size={13} color="#0a7aff" style={{ marginBottom: 4 }} />
+              <Text style={styles.chipLabel}>DATE</Text>
+              <Text style={styles.chipValue}>
+                {doc.report_date
+                  ? (() => {
+                      const d = new Date(doc.report_date);
+                      return isNaN(d.getTime())
+                        ? doc.report_date
+                        : `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+                    })()
+                  : '—'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Notes — only if present */}
+          {doc.additional_notes ? (
+            <View style={styles.notesBox}>
+              <Text style={styles.notesLabel}>NOTES</Text>
+              <Text style={styles.notesText}>{doc.additional_notes}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        <BtnSecondary onPress={() => router.push('/voice-chat')}>
+          Ask AI about this report
+        </BtnSecondary>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+// ── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.cloud[50] },
-  scroll: { padding: 16, gap: 12, paddingBottom: 32 },
-  card: { padding: 16 },
-  reportHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
-  reportName: { fontSize: 16, fontWeight: '700', color: Colors.gray[800] },
-  reportMeta: { fontSize: 11, color: Colors.gray[400], marginTop: 4 },
-  divider: { height: 1, backgroundColor: Colors.cloud[100], marginBottom: 10 },
-  infoRow: { flexDirection: 'row', paddingVertical: 4 },
-  infoLabel: { fontSize: 12, color: Colors.gray[500], width: 90 },
-  infoValue: { fontSize: 12, color: Colors.gray[800], flex: 1, fontWeight: '500' },
-  aiCard: { backgroundColor: Colors.cloud[50], borderColor: Colors.cloud[200], padding: 16, gap: 8 },
-  aiTitle: { fontSize: 12, fontWeight: '700', color: Colors.cloud[700] },
-  aiText: { fontSize: 12, color: Colors.cloud[700], lineHeight: 18 },
+  container: { flex: 1, backgroundColor: Colors.white },
+  scroll: { padding: 16, gap: 14, paddingBottom: 48 },
+
+  // Preview card
+  previewCard: {
+    borderRadius: 20, overflow: 'hidden',
+    height: 220,
+    backgroundColor: Colors.cloud[50],
+    borderWidth: 1, borderColor: Colors.cloud[100],
+  },
+  previewImage: { width: '100%', height: '100%' },
+  previewWebView: { flex: 1, backgroundColor: '#fff' },
+  previewGradient: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    height: 72, justifyContent: 'flex-end', padding: 14,
+  },
+  previewTapHint: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  previewTapText: { fontSize: 12, color: '#fff', fontWeight: '600' },
+  previewPlaceholderEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  previewNoFile: { fontSize: 12, color: Colors.cloud[400] },
+
+  // Report meta card
+  metaCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 20, borderWidth: 1, borderColor: Colors.cloud[100],
+    padding: 16,
+    shadowColor: '#0a7aff', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+  },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  reportName: { fontSize: 18, fontWeight: '700', color: Colors.gray[800], letterSpacing: -0.4 },
+  reportFileName: { fontSize: 11, color: Colors.gray[400], marginTop: 3 },
+  securePill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#f0f6ff', borderWidth: 1, borderColor: '#c8deff',
+    borderRadius: 99, paddingHorizontal: 8, paddingVertical: 4, marginTop: 2,
+  },
+  securePillText: { fontSize: 10, fontWeight: '700', color: '#0a7aff' },
+  divider: { height: 1, backgroundColor: Colors.cloud[100], marginVertical: 14 },
+
+  // Chip grid
+  chipRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  chip: { flex: 1, alignItems: 'center', paddingHorizontal: 6 },
+  chipDivider: { width: 1, backgroundColor: Colors.cloud[100], alignSelf: 'stretch', marginVertical: 4 },
+  chipLabel: { fontSize: 9, fontWeight: '700', color: Colors.gray[400], letterSpacing: 0.6, textAlign: 'center', marginBottom: 3 },
+  chipValue: { fontSize: 12, fontWeight: '600', color: Colors.gray[700], textAlign: 'center' },
+
+  // Notes
+  notesBox: {
+    marginTop: 14, padding: 12,
+    backgroundColor: Colors.cloud[50], borderRadius: 12,
+    borderWidth: 1, borderColor: Colors.cloud[100],
+  },
+  notesLabel: { fontSize: 9, fontWeight: '700', color: Colors.gray[400], letterSpacing: 0.6, marginBottom: 4 },
+  notesText: { fontSize: 13, color: Colors.gray[600], lineHeight: 20 },
 });

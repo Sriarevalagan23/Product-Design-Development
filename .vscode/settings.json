@@ -1,1 +1,4 @@
-{"python.defaultInterpreterPath": "${workspaceFolder}/OCR_backend/venv/bin/python"}
+{
+	"python.defaultInterpreterPath": "${workspaceFolder}/OCR_backend/venv/bin/python",
+	"python.terminal.useEnvFile": true
+}

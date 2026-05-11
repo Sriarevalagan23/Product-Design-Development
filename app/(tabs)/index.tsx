@@ -11,6 +11,8 @@ import {
   View,
 } from 'react-native';
 
+
+
 const vitals = [
   { label: 'Blood Pressure', val: '118/76', unit: 'mmHg', badge: 'OK', type: 'green' as const },
   { label: 'Glucose', val: '108', unit: 'mg/dL', badge: 'Watch', type: 'yellow' as const },
@@ -65,7 +67,7 @@ export default function DashboardScreen() {
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning,';
-    if (hour < 18) return 'Good afternoon,';
+    if (hour < 16) return 'Good afternoon,';
     return 'Good evening,';
   };
 

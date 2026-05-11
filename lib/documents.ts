@@ -41,9 +41,10 @@ export interface UserDocument {
   file_name?: string;
   file_type?: string;
   file_size?: number;
-  extracted_text?: string;
+
   created_at: string;
 }
+
 
 /**
  * Saves a new document record in the database.
@@ -115,21 +116,34 @@ export async function uploadDocumentFile(
     const cleanFileName = safeName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
     const filePath = preGeneratedFilePath || `${userId}/${timestamp}_${cleanFileName}`;
 
-    // Upload using FormData to avoid React Native HTTP 400 array buffer errors
-    const formData = new FormData();
-    formData.append('file', {
-      uri: fileUri,
-      type: fileType,
-      name: safeName,
-    } as any);
+    // Convert local file URI to bytes for a stable RN upload payload.
+    const base64 = await FileSystem.readAsStringAsync(fileUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    const fileBytes = decodeBase64(base64);
 
-    const { data, error } = await supabase.storage
-      .from('user_docs')
-      .upload(filePath, formData);
+    let lastError: any = null;
+    let data: any = null;
 
-    if (error) {
-      console.error('Storage upload error:', error);
-      throw error;
+    // Retry once for transient network issues.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const result = await supabase.storage
+        .from('user_docs')
+        .upload(filePath, fileBytes, {
+          contentType: fileType,
+          upsert: true,
+        });
+
+      data = result.data;
+      lastError = result.error;
+      if (!lastError) {
+        break;
+      }
+    }
+
+    if (lastError) {
+      console.error('Storage upload error:', lastError);
+      throw lastError;
     }
 
     const { data: { publicUrl } } = supabase.storage
