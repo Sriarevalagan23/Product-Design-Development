@@ -10,11 +10,12 @@ import {
   TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { uploadDocumentFile, saveUserDocument } from '@/lib/documents';
 import { supabase } from '@/lib/supabase';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const BLUE_GRAD: [string, string] = ['#0a7aff', '#3a9bff'];
+const BLUE_GRAD: [string, string] = ['#E3F5C7', '#E3F5C7'];
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
 const REPORT_TYPES: { key: string; label: string; desc: string; icon: IoniconsName }[] = [
@@ -28,30 +29,44 @@ const REPORT_TYPES: { key: string; label: string; desc: string; icon: IoniconsNa
 
 // ─── Small reusable field ─────────────────────────────────────────────────────
 function Field({
-  label, icon, placeholder, value, onChangeText, multiline,
+  label, icon, placeholder, value, onChangeText, multiline, onPress, editable = true
 }: {
   label: string; icon: IoniconsName; placeholder: string;
-  value: string; onChangeText: (v: string) => void; multiline?: boolean;
+  value: string; onChangeText?: (v: string) => void; multiline?: boolean;
+  onPress?: () => void; editable?: boolean;
 }) {
   const [focused, setFocused] = useState(false);
-  return (
+  const content = (
     <View style={field.wrap}>
       {!!label && <Text style={field.label}>{label.toUpperCase()}</Text>}
-      <View style={[field.box, focused && field.boxFocused]}>
-        <Ionicons name={icon} size={17} color={focused ? '#0a7aff' : Colors.gray[400]} style={field.icon} />
-        <TextInput
-          style={[field.input, multiline && { height: 72, textAlignVertical: 'top' }]}
-          placeholder={placeholder}
-          placeholderTextColor={Colors.gray[400]}
-          value={value}
-          onChangeText={onChangeText}
-          multiline={multiline}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-        />
+      <View style={[field.box, focused && field.boxFocused, !editable && { backgroundColor: Colors.white }]}>
+        <Ionicons name={icon} size={17} color={focused ? '#9FCC3B' : Colors.gray[400]} style={field.icon} />
+        {editable ? (
+          <TextInput
+            style={[field.input, multiline && { height: 72, textAlignVertical: 'top' }]}
+            placeholder={placeholder}
+            placeholderTextColor={Colors.gray[400]}
+            value={value}
+            onChangeText={onChangeText}
+            multiline={multiline}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+          />
+        ) : (
+          <View style={[field.input, multiline && { height: 72 }, { justifyContent: 'center' }]}>
+            <Text style={{ fontSize: 14, color: value ? Colors.gray[800] : Colors.gray[400] }}>
+              {value || placeholder}
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
+
+  if (onPress) {
+    return <TouchableOpacity activeOpacity={0.8} onPress={onPress}>{content}</TouchableOpacity>;
+  }
+  return content;
 }
 
 const field = StyleSheet.create({
@@ -59,10 +74,10 @@ const field = StyleSheet.create({
   label: { fontSize: 10, fontWeight: '700', color: Colors.gray[500], letterSpacing: 0.8 },
   box: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.cloud[200],
+    backgroundColor: Colors.white, borderWidth: 1.0, borderColor: Colors.cloud[100],
     borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13,
   },
-  boxFocused: { borderColor: '#0a7aff', backgroundColor: '#f6f9ff' },
+  boxFocused: { borderColor: '#9FCC3B', backgroundColor: '#F5F8F4' },
   icon: { marginTop: 1 },
   input: { flex: 1, fontSize: 14, color: Colors.gray[800], padding: 0 },
 });
@@ -88,16 +103,16 @@ const sec = StyleSheet.create({
     backgroundColor: Colors.white, borderRadius: 20,
     borderWidth: 1, borderColor: Colors.cloud[100],
     padding: 16, gap: 10,
-    shadowColor: '#0a7aff', shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#9FCC3B', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04, shadowRadius: 8, elevation: 1,
   },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 11, fontWeight: '700', color: Colors.gray[500], letterSpacing: 0.6 },
   badge: {
-    backgroundColor: '#f0f6ff', borderWidth: 1, borderColor: '#c8deff',
+    backgroundColor: '#F5F8F4', borderWidth: 1, borderColor: '#D6EEA5',
     borderRadius: 99, paddingHorizontal: 7, paddingVertical: 1,
   },
-  badgeText: { fontSize: 9, fontWeight: '700', color: '#0a7aff' },
+  badgeText: { fontSize: 9, fontWeight: '700', color: '#9FCC3B' },
 });
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
@@ -106,11 +121,19 @@ export default function UploadScreen() {
   const [selectedType, setSelectedType] = useState('');
   const [reportName, setReportName] = useState('');
   const [hospital, setHospital] = useState('');
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [notes, setNotes] = useState('');
   const [uploading, setUploading] = useState(false);
   const [fileSelected, setFileSelected] = useState(false);
   const [file, setFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
+
+  const formattedDate = `${String(date.getDate()).padStart(2, '0')} / ${String(date.getMonth() + 1).padStart(2, '0')} / ${date.getFullYear()}`;
+
+  const onChangeDate = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') setShowDatePicker(false);
+    if (selectedDate) setDate(selectedDate);
+  };
 
   const handleTypeSelect = (key: string) => {
     setSelectedType(key);
@@ -162,18 +185,7 @@ export default function UploadScreen() {
       const cleanFileName = safeName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
       const filePath = `${user.id}/${timestamp}_${cleanFileName}`;
 
-      // Parse DD/MM/YYYY to YYYY-MM-DD for Postgres
-      let parsedDate: string | undefined = undefined;
-      const cleanDate = date.trim();
-      if (cleanDate) {
-        const match = cleanDate.match(/^(\d{1,2})\D+(\d{1,2})\D+(\d{4})$/);
-        if (match) {
-          const [_, d, m, y] = match;
-          parsedDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-        } else {
-          parsedDate = cleanDate;
-        }
-      }
+      const parsedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
       // 1. Upload file to Supabase Storage
       await uploadDocumentFile(
@@ -212,7 +224,7 @@ export default function UploadScreen() {
   // ── Step 1 ──────────────────────────────────────────────────────────────────
   if (step === 1) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.container}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.inner}>
             <TopBar title="Upload report" onBack={() => router.back()} />
@@ -224,9 +236,9 @@ export default function UploadScreen() {
 
               {REPORT_TYPES.map((rt) => (
                 <TouchableOpacity key={rt.key} style={styles.typeCard} activeOpacity={0.75} onPress={() => handleTypeSelect(rt.key)}>
-                  <LinearGradient colors={BLUE_GRAD} style={styles.typeIconBubble} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                    <Ionicons name={rt.icon} size={24} color="#fff" />
-                  </LinearGradient>
+                  <View style={[styles.typeIconBubble, { backgroundColor: '#E3F5C7' }]}>
+                    <Ionicons name={rt.icon} size={20} color={Colors.cloud[800]} />
+                  </View>
                   <View style={styles.typeText}>
                     <Text style={styles.typeLabel}>{rt.label}</Text>
                     <Text style={styles.typeDesc}>{rt.desc}</Text>
@@ -237,13 +249,13 @@ export default function UploadScreen() {
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </View>
     );
   }
 
   // ── Step 2 ──────────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -256,8 +268,8 @@ export default function UploadScreen() {
             {/* ── Selected type pill ── */}
             {currentType && (
               <TouchableOpacity style={styles.selectedPill} onPress={() => setStep(1)} activeOpacity={0.8}>
-                <LinearGradient colors={BLUE_GRAD} style={styles.pillIconBubble} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                  <Ionicons name={currentType.icon} size={16} color="#fff" />
+                <LinearGradient colors={['#D6EEA5', '#9FCC3B']} style={styles.pillIconBubble} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                  <Ionicons name={currentType.icon} size={20} color={Colors.cloud[800]} />
                 </LinearGradient>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.pillLabel}>{currentType.label}</Text>
@@ -289,9 +301,18 @@ export default function UploadScreen() {
                 label="Date of report"
                 icon="calendar-outline"
                 placeholder="DD / MM / YYYY"
-                value={date}
-                onChangeText={setDate}
+                value={formattedDate}
+                editable={false}
+                onPress={() => setShowDatePicker(true)}
               />
+              {showDatePicker && (
+                <DateTimePicker
+                  value={date}
+                  mode="date"
+                  display="default"
+                  onChange={onChangeDate}
+                />
+              )}
             </Section>
 
             {/* ── Section 2: Upload file ── */}
@@ -303,8 +324,8 @@ export default function UploadScreen() {
               >
                 {fileSelected ? (
                   <>
-                    <LinearGradient colors={BLUE_GRAD} style={styles.dropSuccessIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                      <Ionicons name="checkmark-outline" size={28} color="#fff" />
+                    <LinearGradient colors={['#D6EEA5', '#9FCC3B']} style={styles.dropSuccessIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                      <Ionicons name="checkmark-circle-outline" size={32} color={Colors.cloud[800]} />
                     </LinearGradient>
                     <Text style={styles.dropSuccessText}>{file ? file.name : 'File selected'}</Text>
                     <Text style={styles.dropSuccessHint}>Tap to change file</Text>
@@ -312,7 +333,7 @@ export default function UploadScreen() {
                 ) : (
                   <>
                     <View style={styles.dropIconWrap}>
-                      <Ionicons name="cloud-upload-outline" size={32} color="#0a7aff" />
+                      <Ionicons name="cloud-upload-outline" size={32} color="#9FCC3B" />
                     </View>
                     <Text style={styles.dropText}>Tap to browse files</Text>
                     <View style={styles.dropFormats}>
@@ -347,16 +368,16 @@ export default function UploadScreen() {
               onPress={handleSubmit}
               disabled={uploading}
             >
-              <LinearGradient colors={BLUE_GRAD} style={styles.submitGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+              <LinearGradient colors={[Colors.cloud[800], Colors.cloud[800]]} style={styles.submitGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                 {uploading ? (
                   <>
-                    <Ionicons name="sync-outline" size={18} color="#fff" />
-                    <Text style={styles.submitText}>Uploading…</Text>
+                    <Ionicons name="sync-outline" size={18} color={Colors.white} />
+                    <Text style={[styles.submitText, { color: Colors.white }]}>Uploading…</Text>
                   </>
                 ) : (
                   <>
-                    <Ionicons name="cloud-upload-outline" size={18} color="#fff" />
-                    <Text style={styles.submitText}>Upload report</Text>
+                    <Ionicons name="cloud-upload-outline" size={18} color={Colors.white} />
+                    <Text style={[styles.submitText, { color: Colors.white }]}>Upload Document</Text>
                   </>
                 )}
               </LinearGradient>
@@ -365,7 +386,7 @@ export default function UploadScreen() {
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -382,8 +403,8 @@ const styles = StyleSheet.create({
 
   typeCard: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    borderWidth: 1.5, borderRadius: 20, padding: 16,
-    backgroundColor: Colors.white, borderColor: Colors.cloud[200],
+    borderWidth: 1.0, borderRadius: 20, padding: 16,
+    backgroundColor: Colors.white, borderColor: Colors.gray[200],
   },
   typeIconBubble: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   typeText: { flex: 1, gap: 2 },
@@ -393,43 +414,43 @@ const styles = StyleSheet.create({
   // Step 2 – selected pill
   selectedPill: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#f0f6ff', borderWidth: 1.5, borderColor: '#c8deff',
+    backgroundColor: '#F5F8F4', borderWidth: 1.5, borderColor: '#D6EEA5',
     borderRadius: 18, padding: 12,
   },
   pillIconBubble: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   pillLabel: { fontSize: 13, fontWeight: '700', color: Colors.gray[800] },
   pillDesc: { fontSize: 10, color: Colors.gray[400], marginTop: 1 },
   changeBtn: {
-    backgroundColor: Colors.white, borderWidth: 1, borderColor: '#c8deff',
+    backgroundColor: Colors.white, borderWidth: 1, borderColor: '#D6EEA5',
     borderRadius: 99, paddingHorizontal: 12, paddingVertical: 5,
   },
-  changeBtnText: { fontSize: 11, fontWeight: '700', color: '#0a7aff' },
+  changeBtnText: { fontSize: 11, fontWeight: '700', color: '#9FCC3B' },
 
 
   // Drop zone
   dropZone: {
-    borderWidth: 2, borderStyle: 'dashed', borderColor: '#c8deff',
+    borderWidth: 2, borderStyle: 'dashed', borderColor: '#D6EEA5',
     borderRadius: 18, padding: 28, alignItems: 'center', gap: 10,
     backgroundColor: '#f8fbff',
   },
   dropZoneSelected: {
-    borderStyle: 'solid', borderColor: '#0a7aff', backgroundColor: '#f0f6ff',
+    borderStyle: 'solid', borderColor: '#9FCC3B', backgroundColor: '#F5F8F4',
   },
   dropIconWrap: {
     width: 68, height: 68, borderRadius: 20,
-    backgroundColor: '#e8f1ff', borderWidth: 1, borderColor: '#c8deff',
+    backgroundColor: '#e8f1ff', borderWidth: 1, borderColor: '#D6EEA5',
     alignItems: 'center', justifyContent: 'center',
   },
   dropSuccessIcon: { width: 68, height: 68, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  dropSuccessText: { fontSize: 14, fontWeight: '700', color: '#0a7aff' },
+  dropSuccessText: { fontSize: 14, fontWeight: '700', color: '#9FCC3B' },
   dropSuccessHint: { fontSize: 10, color: Colors.gray[400] },
-  dropText: { fontSize: 13, fontWeight: '700', color: '#0a7aff' },
+  dropText: { fontSize: 13, fontWeight: '700', color: '#9FCC3B' },
   dropFormats: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   fmtChip: {
-    backgroundColor: Colors.white, borderWidth: 1, borderColor: '#c8deff',
+    backgroundColor: Colors.white, borderWidth: 1, borderColor: '#D6EEA5',
     borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2,
   },
-  fmtText: { fontSize: 9, fontWeight: '700', color: '#0a7aff' },
+  fmtText: { fontSize: 9, fontWeight: '700', color: '#9FCC3B' },
   dropHint: { fontSize: 10, color: Colors.gray[400] },
 
   // Submit button

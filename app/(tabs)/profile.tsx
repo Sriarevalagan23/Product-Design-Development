@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
@@ -53,8 +54,18 @@ export default function ProfileScreen() {
   ];
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.replace('/login');
+    try {
+      await supabase.auth.signOut();
+      // Clear image cache on sign out
+      await Promise.all([
+        Image.clearMemoryCache(),
+        Image.clearDiskCache()
+      ]);
+    } catch (e) {
+      console.error('Error during sign out:', e);
+    } finally {
+      router.replace('/login');
+    }
   };
 
   return (
@@ -70,7 +81,7 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Avatar card */}
         <Card style={styles.avatarCard}>
-          <LinearGradient colors={['#0a7aff', '#3a9bff']} style={styles.avatar}>
+          <LinearGradient colors={['#E3F5C7', '#E3F5C7']} style={styles.avatar}>
             <Text style={styles.avatarText}>{initials}</Text>
           </LinearGradient>
           <Text style={styles.name}>{name}</Text>
@@ -79,8 +90,8 @@ export default function ProfileScreen() {
         </Card>
 
         {/* Info card */}
+        <Text style={styles.sectionLabel}>PERSONAL INFO</Text>
         <Card style={styles.infoCard}>
-          <Text style={styles.sectionLabel}>PERSONAL INFO</Text>
           {info.map(({ l, v }) => (
             <View key={l} style={styles.infoRow}>
               <Text style={styles.infoKey}>{l}</Text>
@@ -113,28 +124,28 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.cloud[50] },
+  container: { flex: 1, backgroundColor: Colors.white },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 56, paddingBottom: 14,
-    backgroundColor: Colors.white, borderBottomWidth: 1, borderBottomColor: Colors.cloud[100],
+    backgroundColor: Colors.white,
   },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: Colors.gray[800] },
+  headerTitle: { fontSize: 28, fontWeight: '800', color: Colors.gray[800], letterSpacing: -0.6 },
   editText: { fontSize: 13, fontWeight: '700', color: Colors.cloud[500] },
-  scroll: { padding: 16, gap: 12, paddingBottom: 40 },
-  avatarCard: { padding: 24, alignItems: 'center', gap: 8 },
+  scroll: { padding: 16, gap: 12, paddingBottom: 110 },
+  avatarCard: { padding: 24, alignItems: 'center', gap: 8, borderWidth: 1, borderColor: Colors.gray[200], backgroundColor: Colors.white },
   avatar: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: Colors.white, fontSize: 22, fontWeight: '700' },
+  avatarText: { color: '#18332F', fontSize: 22, fontWeight: '700' },
   name: { fontSize: 20, fontWeight: '700', color: Colors.gray[800] },
   email: { fontSize: 11, color: Colors.gray[400] },
-  infoCard: { padding: 16 },
-  sectionLabel: { fontSize: 9, fontWeight: '700', color: Colors.gray[400], letterSpacing: 2, marginBottom: 12 },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: Colors.cloud[50] },
-  infoKey: { fontSize: 11, color: Colors.gray[500] },
-  infoVal: { fontSize: 11, fontWeight: '700', color: Colors.gray[800] },
-  actionCard: { paddingHorizontal: 16, paddingVertical: 4 },
+  infoCard: { paddingHorizontal: 16, paddingVertical: 4, borderWidth: 1, borderColor: Colors.gray[200], backgroundColor: Colors.white },
+  sectionLabel: { fontSize: 13, fontWeight: '700', color: Colors.gray[400], letterSpacing: 1, marginTop: 12, marginBottom: 4 },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: Colors.gray[100] },
+  infoKey: { fontSize: 13, color: Colors.gray[500], fontWeight: '500' },
+  infoVal: { fontSize: 13, fontWeight: '700', color: Colors.gray[800] },
+  actionCard: { paddingHorizontal: 16, paddingVertical: 4, borderWidth: 1, borderColor: Colors.gray[200] },
   listRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14 },
-  borderTop: { borderTopWidth: 1, borderTopColor: Colors.cloud[50] },
+  borderTop: { borderTopWidth: 1, borderTopColor: Colors.white },
   listRowText: { fontSize: 13, color: Colors.gray[700], fontWeight: '600' },
   chevron: { fontSize: 20, color: Colors.gray[400] },
 });

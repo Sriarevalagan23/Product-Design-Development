@@ -39,7 +39,7 @@ export default function OcrPreviewScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.cloud[50] },
+  container: { flex: 1, backgroundColor: Colors.white },
   scroll: { padding: 16, gap: 12, paddingBottom: 32 },
   successBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -50,9 +50,9 @@ const styles = StyleSheet.create({
   successText: { fontSize: 13, fontWeight: '700', color: Colors.emerald[700] },
   card: { padding: 16 },
   cardTitle: { fontSize: 12, fontWeight: '700', color: Colors.gray[700], marginBottom: 12 },
-  mono: { backgroundColor: Colors.cloud[50], borderRadius: 10, padding: 12, borderWidth: 1, borderColor: Colors.cloud[100] },
+  mono: { backgroundColor: Colors.white, borderRadius: 10, padding: 12, borderWidth: 1, borderColor: Colors.cloud[100] },
   monoText: { fontFamily: 'monospace', fontSize: 12, color: Colors.gray[700], lineHeight: 22 },
-  aiCard: { backgroundColor: Colors.cloud[50], borderColor: Colors.cloud[200], padding: 16, gap: 6 },
+  aiCard: { backgroundColor: Colors.white, borderColor: Colors.cloud[200], padding: 16, gap: 6 },
   aiTitle: { fontSize: 11, fontWeight: '700', color: Colors.cloud[700] },
   aiText: { fontSize: 11, color: Colors.cloud[700], lineHeight: 17 },
 });

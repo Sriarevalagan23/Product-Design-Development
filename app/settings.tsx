@@ -4,11 +4,30 @@ import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
+import { supabase } from '@/lib/supabase';
 
 export default function SettingsScreen() {
   const [toggles, setToggles] = useState({ notifs: true, reminders: true, dark: false, bio: true });
   const t = (k: keyof typeof toggles) => () => setToggles((p) => ({ ...p, [k]: !p[k] }));
   const insets = useSafeAreaInsets();
+  const [loading, setLoading] = useState(false);
+
+  const handleSignOut = async () => {
+    setLoading(true);
+    try {
+      await supabase.auth.signOut();
+      await Promise.all([
+        Image.clearMemoryCache(),
+        Image.clearDiskCache()
+      ]);
+    } catch (e) {
+      console.error('Error during sign out:', e);
+    } finally {
+      setLoading(false);
+      router.replace('/login');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -48,9 +67,17 @@ export default function SettingsScreen() {
         </Card>
 
         {/* Sign out */}
-        <TouchableOpacity style={styles.signOut} onPress={() => router.replace('/login')} activeOpacity={0.85}>
-
-          <Text style={styles.signOutText}>Sign out</Text>
+        <TouchableOpacity 
+          style={styles.signOut} 
+          onPress={handleSignOut} 
+          activeOpacity={0.85}
+          disabled={loading}
+        >
+          {loading ? (
+            <Text style={styles.signOutText}>Signing out...</Text>
+          ) : (
+            <Text style={styles.signOutText}>Sign out</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -58,11 +85,11 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.cloud[50] },
+  container: { flex: 1, backgroundColor: Colors.white },
   scroll: { padding: 16, gap: 12, paddingBottom: 32 },
   card: { padding: 16 },
   sectionLabel: { fontSize: 9, fontWeight: '700', color: Colors.gray[400], letterSpacing: 2, marginBottom: 12 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.cloud[50] },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.white },
   rowLabel: { fontSize: 14, color: Colors.gray[700] },
   rowRight: { fontSize: 14, color: Colors.gray[400] },
   signOut: {

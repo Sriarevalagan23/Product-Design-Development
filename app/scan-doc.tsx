@@ -51,7 +51,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 56, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
   backText: { color: Colors.white, fontSize: 22, lineHeight: 26 },
@@ -63,13 +62,13 @@ const styles = StyleSheet.create({
   tr: { top: 0, right: 0, borderTopWidth: CORNER_WIDTH, borderRightWidth: CORNER_WIDTH, borderTopRightRadius: 8 },
   bl: { bottom: 0, left: 0, borderBottomWidth: CORNER_WIDTH, borderLeftWidth: CORNER_WIDTH, borderBottomLeftRadius: 8 },
   br: { bottom: 0, right: 0, borderBottomWidth: CORNER_WIDTH, borderRightWidth: CORNER_WIDTH, borderBottomRightRadius: 8 },
-  scanLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: 'rgba(58,155,255,0.4)', top: '50%' },
+  scanLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: 'rgba(159,204,59,0.8)', top: '50%' },
   frameHint: { color: 'rgba(255,255,255,0.3)', fontSize: 12, textAlign: 'center' },
   controls: { paddingHorizontal: 24, paddingBottom: 48, gap: 14 },
   btnRow: { flexDirection: 'row', gap: 12 },
   galleryBtn: { flex: 1, paddingVertical: 16, borderRadius: 99, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center' },
   galleryText: { color: Colors.white, fontSize: 15, fontWeight: '600' },
-  captureBtn: { flex: 1, paddingVertical: 16, borderRadius: 99, backgroundColor: Colors.cloud[500], alignItems: 'center' },
+  captureBtn: { flex: 1, paddingVertical: 16, borderRadius: 99, backgroundColor: Colors.cloud[800], alignItems: 'center' },
   captureText: { color: Colors.white, fontSize: 15, fontWeight: '700' },
   hint: { color: 'rgba(255,255,255,0.3)', fontSize: 11, textAlign: 'center' },
 });

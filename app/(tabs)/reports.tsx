@@ -7,15 +7,17 @@ import {
   TextInput,
   StyleSheet,
   ActivityIndicator,
-  Image,
   Dimensions,
+  Platform,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { getUserDocuments, UserDocument } from '@/lib/documents';
 import { supabase } from '@/lib/supabase';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { WebView } from 'react-native-webview';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const THUMB_SIZE = (SCREEN_W - 16 * 2 - 8 * 2) / 3; // 3-column grid, full content width
@@ -66,19 +68,45 @@ function formatDate(raw?: string) {
   return `${String(d.getDate()).padStart(2, '0')} ${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}`;
 }
 
-function hasImageUrl(doc: UserDocument) {
-  // Treat any doc with a file_url as potentially previewable;
-  // use onError to fall back to icon if the URL isn't an image.
-  return !!doc.file_url;
+// Mirrors the isImage helper in report-detail.tsx
+function isImageFile(mimeType?: string, fileName?: string) {
+  if (mimeType) return mimeType.startsWith('image/');
+  const ext = (fileName || '').split('.').pop()?.toLowerCase();
+  return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'].includes(ext || '');
+}
+
+// Mirrors the isPdf helper in report-detail.tsx
+function isPdfFile(mimeType?: string, fileName?: string) {
+  if (mimeType) return mimeType === 'application/pdf';
+  return (fileName || '').toLowerCase().endsWith('.pdf');
+}
+
+// Resolve a Supabase storage path → full public URL
+function getPublicUrl(storagePath: string) {
+  const { data } = supabase.storage.from('user_docs').getPublicUrl(storagePath);
+  return data?.publicUrl ?? null;
 }
 
 // ── Document Thumbnail ────────────────────────────────────────────────────────
 function DocThumb({ item }: { item: UserDocument }) {
   const [imgError, setImgError] = React.useState(false);
+  const [publicUrl, setPublicUrl] = React.useState<string | null>(null);
+
   const cat = shortCategory(item.report_category);
-  const color = CATEGORY_COLOR[cat] ?? '#888';
   const icon = CATEGORY_ICON[cat] ?? 'document';
-  const showImg = hasImageUrl(item) && !imgError;
+  const isImg = isImageFile(item.file_type, item.file_name);
+  const isPdf = isPdfFile(item.file_type, item.file_name);
+
+  // Resolve the real public URL once on mount
+  React.useEffect(() => {
+    if (item.file_url) {
+      const url = getPublicUrl(item.file_url);
+      setPublicUrl(url);
+    }
+  }, [item.file_url]);
+
+  const showImg = isImg && !!publicUrl && !imgError;
+  const showPdf = isPdf && !!publicUrl;
 
   return (
     <TouchableOpacity
@@ -87,15 +115,36 @@ function DocThumb({ item }: { item: UserDocument }) {
       activeOpacity={0.82}
     >
       {showImg ? (
+        // ── Actual image preview ──
         <Image
-          source={{ uri: item.file_url }}
+          source={{ uri: publicUrl! }}
           style={styles.thumbImage}
-          resizeMode="cover"
+          contentFit="cover"
+          priority="high"
+          cachePolicy="disk"
           onError={() => setImgError(true)}
         />
+      ) : showPdf ? (
+        // ── PDF first-page preview (non-interactive, same as report-detail) ──
+        <View style={styles.thumbWebViewWrap} pointerEvents="none">
+          <WebView
+            source={{
+              uri: Platform.OS === 'android'
+                ? `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(publicUrl!)}`
+                : publicUrl!
+            }}
+            style={styles.thumbWebView}
+            scrollEnabled={false}
+            scalesPageToFit
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+            showsHorizontalScrollIndicator={false}
+          />
+        </View>
       ) : (
+        // ── Icon placeholder for unsupported types ──
         <View style={styles.thumbPlaceholder}>
-          <Ionicons name={icon as any} size={32} color="#0a7aff" />
+          <Ionicons name={icon as any} size={32} color="#9FCC3B" />
         </View>
       )}
 
@@ -193,7 +242,7 @@ export default function ReportsScreen() {
           onPress={() => router.push('/upload')}
           activeOpacity={0.8}
         >
-          <Ionicons name="add" size={20} color="#fff" />
+          <Ionicons name="add" size={20} color="#ffffffff" />
         </TouchableOpacity>
       </View>
 
@@ -241,7 +290,7 @@ export default function ReportsScreen() {
         {/* ── Timeline content ── */}
         {loading ? (
           <View style={styles.emptyWrap}>
-            <ActivityIndicator size="large" color="#0a7aff" />
+            <ActivityIndicator size="large" color="#9FCC3B" />
             <Text style={styles.emptySubtitle}>Loading your reports…</Text>
           </View>
         ) : grouped.length === 0 ? (
@@ -261,7 +310,7 @@ export default function ReportsScreen() {
                 onPress={() => router.push('/upload')}
                 activeOpacity={0.8}
               >
-                <Ionicons name="cloud-upload-outline" size={15} color="#fff" />
+                <Ionicons name="cloud-upload-outline" size={15} color="#18332F" />
                 <Text style={styles.emptyUploadText}>Upload Report</Text>
               </TouchableOpacity>
             )}
@@ -285,7 +334,7 @@ export default function ReportsScreen() {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f6fa' },
+  container: { flex: 1, backgroundColor: Colors.white },
 
   // Header
   header: {
@@ -295,7 +344,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 6,
     paddingBottom: 14,
-    backgroundColor: '#f5f6fa',
+    backgroundColor: Colors.white,
   },
   headerTitle: {
     fontSize: 28,
@@ -313,10 +362,10 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: '#0a7aff',
+    backgroundColor: Colors.cloud[800],
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0a7aff',
+    shadowColor: '#6c6e68ff',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 8,
@@ -330,15 +379,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#fff',
+    backgroundColor: '#eaf0e87e',
     borderRadius: 14,
     paddingHorizontal: 13,
     paddingVertical: 11,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: Colors.gray[200],
   },
   searchInput: { flex: 1, fontSize: 14, color: '#1f2937', padding: 0 },
 
@@ -348,11 +394,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 99,
-    backgroundColor: '#fff',
+    backgroundColor: '#eaf0e87e',
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },
-  filterChipActive: { backgroundColor: '#0a7aff', borderColor: '#0a7aff' },
+  filterChipActive: { backgroundColor: '#9FCC3B', borderColor: '#9FCC3B' },
   filterText: { fontSize: 12, fontWeight: '600', color: '#6b7280' },
   filterTextActive: { color: '#fff' },
 
@@ -391,13 +437,9 @@ const styles = StyleSheet.create({
     height: THUMB_SIZE,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#fff',
+    backgroundColor: '#eaf0e87e',
     position: 'relative',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
+
   },
   thumbImage: {
     width: '100%',
@@ -406,9 +448,18 @@ const styles = StyleSheet.create({
   thumbPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#fff',
+    backgroundColor: '#eaf0e87e',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  thumbWebViewWrap: {
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden',
+  },
+  thumbWebView: {
+    flex: 1,
+    backgroundColor: '#eaf0e87e',
   },
 
   thumbOverlay: {
@@ -463,7 +514,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginTop: 8,
-    backgroundColor: '#0a7aff',
+    backgroundColor: '#E3F5C7',
     paddingHorizontal: 20,
     paddingVertical: 11,
     borderRadius: 12,
@@ -471,6 +522,6 @@ const styles = StyleSheet.create({
   emptyUploadText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#fff',
+    color: '#18332F',
   },
 });

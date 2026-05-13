@@ -46,17 +46,17 @@ export default function AboutScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.cloud[50] },
+  container: { flex: 1, backgroundColor: Colors.white },
   scroll: { padding: 16, gap: 12, paddingBottom: 32 },
   logoCard: { padding: 24, alignItems: 'center', gap: 8 },
   logoWrap: {
-    width: 64, height: 64, borderRadius: 20, backgroundColor: Colors.cloud[50],
+    width: 64, height: 64, borderRadius: 20, backgroundColor: Colors.white,
     borderWidth: 1, borderColor: Colors.cloud[200], alignItems: 'center', justifyContent: 'center',
   },
   appName: { fontSize: 20, fontWeight: '700', color: Colors.gray[800] },
   version: { fontSize: 10, color: Colors.gray[400], textAlign: 'center' },
   helpRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
-  borderTop: { borderTopWidth: 1, borderTopColor: Colors.cloud[50] },
+  borderTop: { borderTopWidth: 1, borderTopColor: Colors.white },
   helpText: { fontSize: 14, color: Colors.gray[700] },
   chevron: { fontSize: 20, color: Colors.gray[400] },
   footer: { textAlign: 'center', fontSize: 11, color: Colors.gray[400] },

@@ -71,10 +71,10 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.cloud[50] },
+  container: { flex: 1, backgroundColor: Colors.white },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: Colors.cloud[50], borderWidth: 1, borderColor: Colors.cloud[200],
+    backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.cloud[200],
     borderRadius: 99, margin: 16, paddingHorizontal: 16, paddingVertical: 12,
     marginTop: 56,
   },
@@ -87,8 +87,8 @@ const styles = StyleSheet.create({
   recentChip: { paddingHorizontal: 14, paddingVertical: 8, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.cloud[200], borderRadius: 99 },
   recentText: { fontSize: 12, fontWeight: '700', color: Colors.gray[600] },
   resultRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
-  borderTop: { borderTopWidth: 1, borderTopColor: Colors.cloud[50] },
-  resultIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: Colors.cloud[50], borderWidth: 1, borderColor: Colors.cloud[200], alignItems: 'center', justifyContent: 'center' },
+  borderTop: { borderTopWidth: 1, borderTopColor: Colors.white },
+  resultIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.cloud[200], alignItems: 'center', justifyContent: 'center' },
   resultName: { fontSize: 12, fontWeight: '700', color: Colors.gray[800] },
   resultDate: { fontSize: 10, color: Colors.gray[400], marginTop: 2 },
 });

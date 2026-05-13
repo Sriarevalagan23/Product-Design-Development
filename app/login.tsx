@@ -67,7 +67,7 @@ export default function LoginScreen() {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
-              icon={<Text style={{ fontSize: 18, color: Colors.cloud[500] }}>✉️</Text>}
+              icon={<Text style={{ fontSize: 18, color: Colors.cloud[800] }}>✉️</Text>}
             />
             {isEmailInvalid && <Text style={styles.errorText}>Invalid email format</Text>}
           </View>
@@ -76,7 +76,7 @@ export default function LoginScreen() {
             value={pass}
             onChangeText={setPass}
             secureTextEntry={!showPassword}
-            icon={<Text style={{ fontSize: 18, color: Colors.cloud[500] }}>🔒</Text>}
+            icon={<Text style={{ fontSize: 18, color: Colors.cloud[800] }}>🔒</Text>}
             rightIcon={
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 {showPassword ? <EyeIcon size={18} color={Colors.gray[500]} /> : <EyeOffIcon size={18} color={Colors.gray[500]} />}
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   brandName: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#0a7aff',
+    color: '#9FCC3B',
     letterSpacing: -0.5,
     textAlign: 'center',
     marginBottom: 16,
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   forgot: { alignSelf: 'flex-end', marginTop: 4 },
-  forgotText: { fontSize: 13, fontWeight: '700', color: Colors.cloud[500] },
+  forgotText: { fontSize: 13, fontWeight: '700', color: Colors.cloud[800] },
   signInBtn: { marginTop: 8 },
   dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4 },
   dividerLine: { flex: 1, height: 1, backgroundColor: Colors.cloud[100] },
@@ -162,5 +162,5 @@ const styles = StyleSheet.create({
   },
   socialText: { fontSize: 14, fontWeight: '600', color: Colors.gray[700] },
   registerHint: { textAlign: 'center', fontSize: 14, color: Colors.gray[600], marginTop: 8 },
-  registerLink: { color: Colors.cloud[500], fontWeight: '700' },
+  registerLink: { color: Colors.cloud[800], fontWeight: '700' },
 });

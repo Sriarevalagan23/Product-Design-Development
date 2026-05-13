@@ -69,7 +69,7 @@ export default function EditProfileScreen() {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {/* Avatar */}
         <View style={styles.avatarSection}>
-          <LinearGradient colors={['#0a7aff', '#3a9bff']} style={styles.avatar}>
+          <LinearGradient colors={['#E3F5C7', '#E3F5C7']} style={styles.avatar}>
             <Text style={styles.avatarText}>{getInitials(form.name)}</Text>
           </LinearGradient>
           <Text style={styles.changePhoto}>Change photo</Text>
@@ -96,10 +96,10 @@ export default function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.cloud[50] },
+  container: { flex: 1, backgroundColor: Colors.white },
   scroll: { padding: 16, gap: 14, paddingBottom: 40 },
   avatarSection: { alignItems: 'center', gap: 8, paddingBottom: 8 },
   avatar: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: Colors.white, fontSize: 22, fontWeight: '700' },
+  avatarText: { color: '#18332F', fontSize: 22, fontWeight: '700' },
   changePhoto: { fontSize: 13, fontWeight: '700', color: Colors.cloud[500] },
 });

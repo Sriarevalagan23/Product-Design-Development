@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
- 
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type Slide = {
@@ -41,7 +41,7 @@ export default function OnboardingScreen() {
     if (step < 2) {
       scrollRef.current?.scrollToIndex({ index: step + 1, animated: true });
     } else {
-      router.replace('/login');
+      router.replace('/register');
     }
   };
 
@@ -52,7 +52,7 @@ export default function OnboardingScreen() {
   };
 
   const renderSlide = ({ item, index }: { item: Slide; index: number }) => (
-    <View style={[styles.slide, { width: SCREEN_WIDTH }]}> 
+    <View style={[styles.slide, { width: SCREEN_WIDTH }]}>
       <View style={styles.shapeOne} />
       <View style={styles.shapeTwo} />
       <View style={styles.shapeStar} />
@@ -127,7 +127,7 @@ export default function OnboardingScreen() {
             <Text style={styles.heroTitle}>{item.title}</Text>
           </View>
 
-          <TouchableOpacity style={styles.rightStartButton} activeOpacity={0.92} onPress={() => router.replace('/login')}>
+          <TouchableOpacity style={styles.rightStartButton} activeOpacity={0.92} onPress={() => router.replace('/register')}>
             <Text style={styles.rightStartButtonText}>Get started</Text>
           </TouchableOpacity>
         </>

@@ -118,7 +118,7 @@ export default function RegisterScreen() {
               value={form.name}
               onChangeText={f('name')}
               autoCapitalize="words"
-              icon={<Ionicons name="person-outline" size={18} color={Colors.cloud[500]} />}
+              icon={<Ionicons name="person-outline" size={18} color={Colors.cloud[800]} />}
             />
 
             {/* Email */}
@@ -128,7 +128,7 @@ export default function RegisterScreen() {
               onChangeText={f('email')}
               keyboardType="email-address"
               autoCapitalize="none"
-              icon={<Ionicons name="mail-outline" size={18} color={Colors.cloud[500]} />}
+              icon={<Ionicons name="mail-outline" size={18} color={Colors.cloud[800]} />}
             />
 
             {/* Password */}
@@ -137,7 +137,7 @@ export default function RegisterScreen() {
               value={form.pass}
               onChangeText={f('pass')}
               secureTextEntry={!showPass}
-              icon={<Ionicons name="lock-closed-outline" size={18} color={Colors.cloud[500]} />}
+              icon={<Ionicons name="lock-closed-outline" size={18} color={Colors.cloud[800]} />}
               rightIcon={
                 <TouchableOpacity onPress={() => setShowPass(!showPass)}>
                   <Ionicons
@@ -155,7 +155,7 @@ export default function RegisterScreen() {
               value={form.dob}
               onChangeText={f('dob')}
               keyboardType="numeric"
-              icon={<Ionicons name="calendar-outline" size={18} color={Colors.cloud[500]} />}
+              icon={<Ionicons name="calendar-outline" size={18} color={Colors.cloud[800]} />}
             />
 
             {/* Blood group picker */}
@@ -165,7 +165,7 @@ export default function RegisterScreen() {
               activeOpacity={0.8}
             >
               <View style={styles.pickerIcon}>
-                <Ionicons name="water-outline" size={18} color={Colors.cloud[500]} />
+                <Ionicons name="water-outline" size={18} color={Colors.cloud[800]} />
               </View>
               <View style={styles.pickerText}>
                 <Text style={styles.pickerLabel}>Blood group</Text>
@@ -208,7 +208,7 @@ export default function RegisterScreen() {
                 {bg}
               </Text>
               {form.blood === bg && (
-                <Ionicons name="checkmark" size={16} color={Colors.cloud[500]} />
+                <Ionicons name="checkmark" size={16} color={Colors.cloud[800]} />
               )}
             </TouchableOpacity>
           ))}
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: Colors.cloud[50],
+    backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.cloud[100],
     alignItems: 'center',
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 22,
-    backgroundColor: Colors.cloud[500],
+    backgroundColor: Colors.cloud[800],
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: Colors.cloud[500],
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   brandName: {
     fontSize: 22,
     fontWeight: '800',
-    color: Colors.cloud[500],
+    color: Colors.cloud[800],
     letterSpacing: -0.3,
   },
 
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   pickerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.cloud[50],
+    backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.cloud[100],
     borderRadius: 16,
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   pickerValue: { fontSize: 15, color: Colors.gray[800], fontWeight: '500' },
 
   hint: { textAlign: 'center', fontSize: 14, color: Colors.gray[500] },
-  hintLink: { color: Colors.cloud[500], fontWeight: '700' },
+  hintLink: { color: Colors.cloud[800], fontWeight: '700' },
 
   /* Modal */
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
   },
-  modalItemActive: { backgroundColor: Colors.cloud[50] },
+  modalItemActive: { backgroundColor: Colors.white },
   modalItemText: { fontSize: 15, color: Colors.gray[700], fontWeight: '500' },
   modalItemTextActive: { color: Colors.cloud[500], fontWeight: '700' },
 });

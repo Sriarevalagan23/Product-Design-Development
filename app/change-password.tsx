@@ -39,7 +39,7 @@ export default function ChangePasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.cloud[50] },
+  container: { flex: 1, backgroundColor: Colors.white },
   scroll: { padding: 16, gap: 16, paddingBottom: 40 },
   reqCard: { padding: 14, gap: 2 },
   reqTitle: { fontSize: 12, fontWeight: '700', color: Colors.gray[600], marginBottom: 8 },

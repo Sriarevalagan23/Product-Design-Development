@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator,
-  TouchableOpacity, Modal, Image, Dimensions, StatusBar,
+  TouchableOpacity, Modal, Dimensions, StatusBar, Platform,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Colors } from '@/constants/Colors';
@@ -51,18 +52,28 @@ function DocViewer({
         {/* Content */}
         {isImg ? (
           <View style={dv.imgWrap}>
-            <Image source={{ uri: url }} style={dv.img} resizeMode="contain" />
+            <Image
+              source={{ uri: url }}
+              style={dv.img}
+              contentFit="contain"
+              priority="high"
+              cachePolicy="disk"
+            />
           </View>
         ) : (
           <View style={{ flex: 1 }}>
             {webLoading && (
               <View style={dv.webLoader}>
-                <ActivityIndicator size="large" color="#0a7aff" />
+                <ActivityIndicator size="large" color="#9FCC3B" />
                 <Text style={dv.webLoaderText}>Loading document…</Text>
               </View>
             )}
             <WebView
-              source={{ uri: url }}
+              source={{
+                uri: Platform.OS === 'android' && !isImg
+                  ? `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(url)}`
+                  : url
+              }}
               style={{ flex: 1 }}
               onLoadStart={() => setWebLoading(true)}
               onLoadEnd={() => setWebLoading(false)}
@@ -142,7 +153,7 @@ export default function ReportDetailScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <TopBar title="Report detail" onBack={() => router.back()} />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 }}>
-          <ActivityIndicator size="large" color="#0a7aff" />
+          <ActivityIndicator size="large" color="#9FCC3B" />
           <Text style={{ fontSize: 13, color: Colors.gray[400] }}>Loading report…</Text>
         </View>
       </SafeAreaView>
@@ -189,7 +200,13 @@ export default function ReportDetailScreen() {
         >
           {fileIsImage && publicUrl ? (
             <>
-              <Image source={{ uri: publicUrl }} style={styles.previewImage} resizeMode="cover" />
+              <Image
+                source={{ uri: publicUrl }}
+                style={styles.previewImage}
+                contentFit="cover"
+                priority="high"
+                cachePolicy="disk"
+              />
               <LinearGradient
                 colors={['transparent', 'rgba(0,0,0,0.6)']}
                 style={styles.previewGradient}
@@ -204,7 +221,11 @@ export default function ReportDetailScreen() {
             // PDF / other — show a live first-page preview via WebView
             <>
               <WebView
-                source={{ uri: publicUrl }}
+                source={{
+                  uri: Platform.OS === 'android'
+                    ? `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(publicUrl)}`
+                    : publicUrl
+                }}
                 style={styles.previewWebView}
                 scrollEnabled={false}
                 pointerEvents="none"
@@ -246,7 +267,7 @@ export default function ReportDetailScreen() {
             </View>
             {/* Inline secure badge */}
             <View style={styles.securePill}>
-              <Ionicons name="shield-checkmark-outline" size={11} color="#0a7aff" />
+              <Ionicons name="shield-checkmark-outline" size={11} color={Colors.cloud[800]} />
               <Text style={styles.securePillText}>Saved</Text>
             </View>
           </View>
@@ -256,28 +277,28 @@ export default function ReportDetailScreen() {
           {/* Chip grid — 3 fields side by side */}
           <View style={styles.chipRow}>
             <View style={styles.chip}>
-              <Ionicons name="folder-outline" size={13} color="#0a7aff" style={{ marginBottom: 4 }} />
+              <Ionicons name="folder-outline" size={13} color={Colors.cloud[800]} style={{ marginBottom: 4 }} />
               <Text style={styles.chipLabel}>CATEGORY</Text>
               <Text style={styles.chipValue} numberOfLines={2}>{doc.report_category || '—'}</Text>
             </View>
             <View style={styles.chipDivider} />
             <View style={styles.chip}>
-              <Ionicons name="business-outline" size={13} color="#0a7aff" style={{ marginBottom: 4 }} />
+              <Ionicons name="business-outline" size={13} color={Colors.cloud[800]} style={{ marginBottom: 4 }} />
               <Text style={styles.chipLabel}>HOSPITAL</Text>
               <Text style={styles.chipValue} numberOfLines={2}>{doc.hospital_name || '—'}</Text>
             </View>
             <View style={styles.chipDivider} />
             <View style={styles.chip}>
-              <Ionicons name="calendar-outline" size={13} color="#0a7aff" style={{ marginBottom: 4 }} />
+              <Ionicons name="calendar-outline" size={13} color={Colors.cloud[800]} style={{ marginBottom: 4 }} />
               <Text style={styles.chipLabel}>DATE</Text>
               <Text style={styles.chipValue}>
                 {doc.report_date
                   ? (() => {
-                      const d = new Date(doc.report_date);
-                      return isNaN(d.getTime())
-                        ? doc.report_date
-                        : `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
-                    })()
+                    const d = new Date(doc.report_date);
+                    return isNaN(d.getTime())
+                      ? doc.report_date
+                      : `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+                  })()
                   : '—'}
               </Text>
             </View>
@@ -310,7 +331,7 @@ const styles = StyleSheet.create({
   previewCard: {
     borderRadius: 20, overflow: 'hidden',
     height: 220,
-    backgroundColor: Colors.cloud[50],
+    backgroundColor: Colors.white,
     borderWidth: 1, borderColor: Colors.cloud[100],
   },
   previewImage: { width: '100%', height: '100%' },
@@ -326,21 +347,19 @@ const styles = StyleSheet.create({
 
   // Report meta card
   metaCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 20, borderWidth: 1, borderColor: Colors.cloud[100],
+    backgroundColor: Colors.cloud[50],
+    borderRadius: 20,
     padding: 16,
-    shadowColor: '#0a7aff', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   reportName: { fontSize: 18, fontWeight: '700', color: Colors.gray[800], letterSpacing: -0.4 },
   reportFileName: { fontSize: 11, color: Colors.gray[400], marginTop: 3 },
   securePill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#f0f6ff', borderWidth: 1, borderColor: '#c8deff',
+    backgroundColor: '#F5F8F4', borderWidth: 1, borderColor: '#D6EEA5',
     borderRadius: 99, paddingHorizontal: 8, paddingVertical: 4, marginTop: 2,
   },
-  securePillText: { fontSize: 10, fontWeight: '700', color: '#0a7aff' },
+  securePillText: { fontSize: 10, fontWeight: '700', color: Colors.cloud[800] },
   divider: { height: 1, backgroundColor: Colors.cloud[100], marginVertical: 14 },
 
   // Chip grid
@@ -353,8 +372,8 @@ const styles = StyleSheet.create({
   // Notes
   notesBox: {
     marginTop: 14, padding: 12,
-    backgroundColor: Colors.cloud[50], borderRadius: 12,
-    borderWidth: 1, borderColor: Colors.cloud[100],
+    backgroundColor: Colors.white, borderRadius: 12,
+
   },
   notesLabel: { fontSize: 9, fontWeight: '700', color: Colors.gray[400], letterSpacing: 0.6, marginBottom: 4 },
   notesText: { fontSize: 13, color: Colors.gray[600], lineHeight: 20 },

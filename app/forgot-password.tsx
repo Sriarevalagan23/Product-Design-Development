@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: Colors.cloud[50],
+    backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.cloud[100],
     alignItems: 'center',
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   },
   form: { gap: 14 },
   successCard: {
-    backgroundColor: Colors.cloud[50],
+    backgroundColor: Colors.white,
     borderColor: Colors.cloud[200],
     padding: 16,
   },
@@ -124,6 +124,6 @@ const styles = StyleSheet.create({
   backLinkText: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.cloud[500],
+    color: Colors.cloud[800],
   },
 });
