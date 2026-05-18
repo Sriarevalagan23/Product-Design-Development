@@ -31,7 +31,6 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={{ height: insets.top, backgroundColor: Colors.white }} />
       <TopBar title="Settings" onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Preferences */}

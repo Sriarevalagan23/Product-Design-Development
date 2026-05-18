@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Badge, Card, BtnSecondary, BtnOutline } from '@/components/ui/MediComponents';
 import { supabase } from '@/lib/supabase';
@@ -19,20 +19,22 @@ export default function ProfileScreen() {
     allergies?: string;
   } | null>(null);
 
-  useEffect(() => {
-    async function loadProfile() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        if (data) setProfile(data);
+  useFocusEffect(
+    useCallback(() => {
+      async function loadProfile() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          if (data) setProfile(data);
+        }
       }
-    }
-    loadProfile();
-  }, []);
+      loadProfile();
+    }, [])
+  );
 
   const getInitials = (fullName: string | undefined) => {
     if (!fullName) return 'U';

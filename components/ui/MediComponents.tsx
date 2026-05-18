@@ -123,11 +123,11 @@ export const Toggle = ({ on, onToggle }: { on: boolean; onToggle: () => void }) 
 
 // ─── TopBar ───────────────────────────────────────────────────────────────────
 export const TopBar = ({
-  title, onBack, rightLabel, onRight,
-}: { title: string; onBack?: () => void; rightLabel?: string; onRight?: () => void }) => {
+  title, onBack, rightLabel, onRight, topOffset = 0,
+}: { title: string; onBack?: () => void; rightLabel?: string; onRight?: () => void; topOffset?: number }) => {
   const insets = useSafeAreaInsets();
   return (
-    <View style={[styles.topBarContainer, { paddingTop: insets.top }]}>
+    <View style={[styles.topBarContainer, { paddingTop: Math.max(insets.top - topOffset, 0) }]}>
       <View style={styles.topBar}>
         <View style={{ width: 60 }}>
           {onBack && (

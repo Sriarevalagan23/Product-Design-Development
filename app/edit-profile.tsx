@@ -64,7 +64,6 @@ export default function EditProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={{ height: insets.top, backgroundColor: Colors.white }} />
       <TopBar title="Edit profile" onBack={() => router.back()} rightLabel="Save" onRight={handleSave} />
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {/* Avatar */}

@@ -71,6 +71,9 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     async function loadProfile() {
+      const { data: { session } } = await supabase.auth.getSession();
+
+
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data } = await supabase

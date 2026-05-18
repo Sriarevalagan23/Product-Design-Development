@@ -18,7 +18,6 @@ export default function AboutScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={{ height: insets.top, backgroundColor: Colors.white }} />
       <TopBar title="About & help" onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Logo card */}

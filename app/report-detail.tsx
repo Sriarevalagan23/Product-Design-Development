@@ -4,10 +4,9 @@ import {
   TouchableOpacity, Modal, Dimensions, StatusBar, Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Colors } from '@/constants/Colors';
-import { BtnSecondary, TopBar } from '@/components/ui/MediComponents';
+import { BtnPrimary, TopBar } from '@/components/ui/MediComponents';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { UserDocument } from '@/lib/documents';
@@ -150,25 +149,25 @@ export default function ReportDetailScreen() {
   // ── Loading state ──────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.container}>
         <TopBar title="Report detail" onBack={() => router.back()} />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 }}>
           <ActivityIndicator size="large" color="#9FCC3B" />
           <Text style={{ fontSize: 13, color: Colors.gray[400] }}>Loading report…</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!doc) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.container}>
         <TopBar title="Report detail" onBack={() => router.back()} />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 }}>
           <Ionicons name="document-outline" size={40} color={Colors.gray[300]} />
           <Text style={{ color: Colors.gray[500], fontSize: 14 }}>Report not found</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -176,7 +175,7 @@ export default function ReportDetailScreen() {
   const fileIsPdf = isPdf(doc.file_type, doc.file_name);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container}>
 
       {/* In-app full-screen viewer */}
       {publicUrl && (
@@ -313,12 +312,12 @@ export default function ReportDetailScreen() {
           ) : null}
         </View>
 
-        <BtnSecondary onPress={() => router.push('/voice-chat')}>
+        <BtnPrimary onPress={() => router.push(`/report-insight?id=${id}`)}>
           Ask AI about this report
-        </BtnSecondary>
+        </BtnPrimary>
 
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
