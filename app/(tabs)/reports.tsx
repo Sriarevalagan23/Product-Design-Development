@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
 
-  scroll: { paddingHorizontal: 16, paddingBottom: 48, gap: 14 },
+  scroll: { paddingHorizontal: 16, paddingBottom: 110, gap: 14 },
 
   // Search
   searchWrap: {

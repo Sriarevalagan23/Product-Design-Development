@@ -7,9 +7,13 @@
     "icon": "./assets/images/icon.png",
     "scheme": "medex",
     "userInterfaceStyle": "automatic",
-
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Medex uses on-device speech recognition to convert your voice into text.",
+        "NSMicrophoneUsageDescription": "Medex needs microphone access so you can ask health questions by voice."
+      },
+      "bundleIdentifier": "com.srinidhi-23.medex"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,8 +22,10 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-
-      "predictiveBackGestureEnabled": false
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.srinidhi_23.medex"
     },
     "web": {
       "output": "static",
@@ -39,11 +45,17 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Medex needs microphone access so you can ask health questions by voice.",
+          "speechRecognitionPermission": "Medex uses on-device speech recognition to convert your voice into text."
+        }
+      ]
     ],
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "typedRoutes": true
     }
   }
 }
