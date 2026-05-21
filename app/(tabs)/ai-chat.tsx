@@ -8,6 +8,7 @@ import {
   Animated,
   Easing,
   DeviceEventEmitter,
+  ScrollView,
 } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { supabase } from '@/lib/supabase';
@@ -399,7 +400,7 @@ export default function AiChatTab() {
   }, [handleMicPress]);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 270 }]}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 330 }]}>
       {/* Top light-green fade gradient */}
       <LinearGradient
         colors={['rgba(214, 238, 165, 0.55)', 'rgba(214, 238, 165, 0.12)', 'rgba(255, 255, 255, 0)']}
@@ -425,9 +426,17 @@ export default function AiChatTab() {
 
       {/* Main Text Content */}
       <View style={styles.textContainer}>
-        <Text style={styles.assistantText} numberOfLines={8} adjustsFontSizeToFit>
-          {displayText}
-        </Text>
+        <ScrollView contentContainerStyle={styles.scrollTextContainer} showsVerticalScrollIndicator={false}>
+          <Text style={styles.assistantText}>
+            {displayText}
+          </Text>
+        </ScrollView>
+        {/* Bottom fade gradient to fade text above the waveform */}
+        <LinearGradient
+          colors={['rgba(255, 255, 255, 0)', '#ffffff']}
+          style={styles.bottomFade}
+          pointerEvents="none"
+        />
       </View>
 
       {/* Waveform Visualization (directly on the screen's white background) */}
@@ -472,8 +481,12 @@ const styles = StyleSheet.create({
   textContainer: {
     flex: 1,
     paddingHorizontal: 32,
-    justifyContent: 'center',
     paddingTop: 20,
+  },
+  scrollTextContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingBottom: 90,
   },
   assistantText: {
     fontSize: 22,
@@ -481,6 +494,13 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: '#151717',
     textAlign: 'left',
+  },
+  bottomFade: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
   },
   waveformWrapper: {
     position: 'absolute',

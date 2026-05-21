@@ -6,12 +6,63 @@ import { router, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import React, { useEffect, useState, useCallback } from 'react';
 import { getUserDocuments, UserDocument } from '@/lib/documents';
+import * as SecureStore from 'expo-secure-store';
 import {
   ScrollView, StyleSheet,
   Text, TouchableOpacity,
   View, ActivityIndicator
 } from 'react-native';
-import Svg, { Path, Circle } from 'react-native-svg';
+
+
+const HEALTH_TIPS = [
+  { icon: 'water-outline' as const, tip: 'Drink at least 8 glasses of water today to stay hydrated and support kidney function.', category: 'Hydration' },
+  { icon: 'walk-outline' as const, tip: 'A brisk 30-minute walk lowers blood pressure and improves heart health significantly.', category: 'Activity' },
+  { icon: 'moon-outline' as const, tip: 'Aim for 7–9 hours of sleep. Poor sleep raises cortisol and increases diabetes risk.', category: 'Sleep' },
+  { icon: 'leaf-outline' as const, tip: "Add leafy greens to your meals \u2014 they're rich in folate, iron, and antioxidants.", category: 'Nutrition' },
+  { icon: 'sunny-outline' as const, tip: 'Get 15 minutes of morning sunlight to boost Vitamin D levels and regulate your body clock.', category: 'Wellness' },
+  { icon: 'heart-outline' as const, tip: 'Deep breathing for 5 minutes reduces stress hormones and lowers resting heart rate.', category: 'Mindfulness' },
+  { icon: 'barbell-outline' as const, tip: 'Strength training twice a week improves insulin sensitivity and bone density.', category: 'Fitness' },
+];
+
+function isIoniconsName(str?: string): boolean {
+  if (!str) return false;
+  return /^[a-z]+(-[a-z]+)*$/.test(str);
+}
+
+const actionCards = [
+  {
+    label: 'Upload Reports',
+    icon: 'cloud-upload-outline' as const,
+    desc: 'Add medical documents',
+    route: '/upload',
+    iconBg: '#E3F5C7',
+    iconColor: '#5A8A2E',
+  },
+  {
+    label: 'Talk to Medex',
+    icon: 'mic-outline' as const,
+    desc: 'AI health assistant',
+    route: '/voice-chat',
+    iconBg: '#E8F4FF',
+    iconColor: '#2E6FAA',
+  },
+  {
+    label: 'Predict Health Risk',
+    icon: 'analytics-outline' as const,
+    desc: 'Heart, BP & diabetes risk',
+    route: '/health-predict',
+    iconBg: '#FFF3E3',
+    iconColor: '#AA6A2E',
+  },
+  {
+    label: 'Medicine Reminder',
+    icon: 'alarm-outline' as const,
+    desc: 'Set daily reminders',
+    route: '/medicine-reminder',
+    iconBg: '#F3E3FF',
+    iconColor: '#7A2EAA',
+  },
+];
 
 function formatDate(raw?: string) {
   if (!raw) return '';
@@ -20,26 +71,56 @@ function formatDate(raw?: string) {
   return `${String(d.getDate()).padStart(2, '0')} ${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}`;
 }
 
-const vitals = [
-  { label: 'Blood Pressure', val: '118/76', unit: 'mmHg', badge: 'OK', type: 'green' as const },
-  { label: 'Glucose', val: '108', unit: 'mg/dL', badge: 'Watch', type: 'yellow' as const },
-  { label: 'Heart Rate', val: '72', unit: 'bpm', badge: 'OK', type: 'green' as const },
-  { label: 'BMI', val: '22.4', unit: '', badge: 'OK', type: 'green' as const },
-];
-
-
-const quickActions = [
-  { label: 'Upload', emoji: '📤', route: '/upload' },
-  { label: 'Predict', emoji: '🔬', route: '/enter-vitals' },
-  { label: 'Trends', emoji: '📊', route: '/(tabs)/health-trends' },
-];
-
 export default function DashboardScreen() {
   const [userName, setUserName] = useState('...');
+
   const [initials, setInitials] = useState('');
-  const [healthScore, setHealthScore] = useState(78);
   const [recentDocs, setRecentDocs] = useState<UserDocument[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(true);
+  const [todaysTip, setTodaysTip] = useState<{
+    title?: string;
+    tip: string;
+    emoji?: string;
+    icon?: string;
+    category?: string;
+  }>(HEALTH_TIPS[new Date().getDay() % HEALTH_TIPS.length]);
+
+  useEffect(() => {
+    async function fetchAndCacheTip() {
+      try {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const cachedDate = await SecureStore.getItemAsync('health_tip_cache_date');
+        const cachedTipStr = await SecureStore.getItemAsync('health_tip_cached_data');
+
+        if (cachedDate === todayStr && cachedTipStr) {
+          setTodaysTip(JSON.parse(cachedTipStr));
+          return;
+        }
+
+        const { data: dbTips, error } = await supabase
+          .from('health_tips')
+          .select('title, tip, emoji, category')
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        if (dbTips && dbTips.length > 0) {
+          const now = new Date();
+          const localTimeMs = now.getTime() - now.getTimezoneOffset() * 60 * 1000;
+          const daysSinceEpoch = Math.floor(localTimeMs / (24 * 60 * 60 * 1000));
+          const tipIndex = daysSinceEpoch % dbTips.length;
+          const selectedTip = dbTips[tipIndex];
+
+          await SecureStore.setItemAsync('health_tip_cache_date', todayStr);
+          await SecureStore.setItemAsync('health_tip_cached_data', JSON.stringify(selectedTip));
+          setTodaysTip(selectedTip);
+        }
+      } catch (err) {
+        console.error('Error loading health tip:', err);
+      }
+    }
+    fetchAndCacheTip();
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -64,10 +145,6 @@ export default function DashboardScreen() {
     }, [])
   );
 
-  // Calculate dynamic circle progress
-  const arcRadius = 100;
-  const arcLength = 2 * Math.PI * arcRadius;
-  const arcOffset = arcLength - (healthScore / 100) * arcLength;
 
   useEffect(() => {
     async function loadProfile() {
@@ -130,55 +207,52 @@ export default function DashboardScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Health Score */}
+        {/* Today's Health Tip */}
         <View style={[styles.scoreBanner, { backgroundColor: '#E3F5C7' }]}>
-          <View style={styles.gaugeWrap}>
-            <Svg width={240} height={240} viewBox="0 0 240 240">
-              {/* Background circle */}
-              <Circle
-                cx="120"
-                cy="120"
-                r={arcRadius}
-                stroke="rgba(0,0,0,0.05)"
-                strokeWidth={14}
-                fill="none"
-              />
-              {/* Progress circle */}
-              <Circle
-                cx="120"
-                cy="120"
-                r={arcRadius}
-                stroke="#9FCC3B"
-                strokeWidth={14}
-                strokeLinecap="round"
-                fill="none"
-                strokeDasharray={arcLength}
-                strokeDashoffset={arcOffset}
-                transform="rotate(-90 120 120)"
-              />
-            </Svg>
-            {/* Centered text/icon */}
-            <View style={styles.gaugeCenter}>
-              <Ionicons name="heart" size={24} color="#9FCC3B" />
-              <Text style={styles.scoreNumLarge}>{healthScore}</Text>
-              <Text style={styles.scoreMaxLabel}>/100</Text>
+          {/* Top row: icon + category badge */}
+          <View style={styles.tipIconRow}>
+            <View style={styles.tipIconBubble}>
+              <Ionicons name={HEALTH_TIPS[new Date().getDay() % HEALTH_TIPS.length].icon} size={32} color="#5A8A2E" />
             </View>
           </View>
 
-          <View style={styles.scoreInfo}>
-            <Text style={styles.scoreLabel}>Health Score</Text>
-            <Text style={styles.scoreRating}>Good • <Text style={styles.scoreTime}>Updated 2h ago</Text></Text>
+          {/* Body: grows to fill space */}
+          <View style={styles.tipBody}>
+            <Text style={styles.tipHeading}>Today's Health Tip</Text>
+            <View style={styles.tipDivider} />
+            {!!todaysTip.title && (
+              <Text style={styles.tipTitleText}>{todaysTip.title}</Text>
+            )}
+            <Text style={styles.tipText}>{todaysTip.tip}</Text>
+            {!!todaysTip.emoji && (
+              <Text style={styles.tipEmoji}>{todaysTip.emoji}</Text>
+            )}
+          </View>
+
+          {/* Footer: pinned to bottom */}
+          <View style={styles.tipFooter}>
+            <Ionicons name="calendar-outline" size={13} color="rgba(0,0,0,0.35)" />
+            <Text style={styles.tipDate}>
+              {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </Text>
           </View>
         </View>
 
-        {/* Vitals Grid */}
+        {/* Quick Action Cards */}
         <View style={styles.vitalsGrid}>
-          {vitals.map((v) => (
-            <Card key={v.label} style={styles.vitalCard}>
-              <Badge label={v.badge} type={v.type} />
-              <Text style={styles.vitalVal}>{v.val} <Text style={styles.vitalUnit}>{v.unit}</Text></Text>
-              <Text style={styles.vitalLabel}>{v.label}</Text>
-            </Card>
+          {actionCards.map((a) => (
+            <TouchableOpacity
+              key={a.label}
+              style={styles.vitalCard}
+              onPress={() => router.push(a.route as any)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.actionIconBubble, { backgroundColor: a.iconBg }]}>
+                <Ionicons name={a.icon} size={22} color={a.iconColor} />
+              </View>
+              <Text style={[styles.vitalVal, { fontSize: 14, marginTop: 2 }]}>{a.label}</Text>
+              <Text style={styles.vitalLabel}>{a.desc}</Text>
+            </TouchableOpacity>
           ))}
         </View>
 
@@ -230,19 +304,7 @@ export default function DashboardScreen() {
           <Text style={styles.aiChevron}>›</Text>
         </TouchableOpacity>
 
-        {/* Quick Actions Header */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Quick actions</Text>
-        </View>
 
-        <View style={styles.quickGrid}>
-          {quickActions.map((a) => (
-            <TouchableOpacity key={a.label} style={styles.quickBtn} onPress={() => router.push(a.route as any)} activeOpacity={0.8}>
-              <Text style={styles.quickEmoji}>{a.emoji}</Text>
-              <Text style={styles.quickLabel}>{a.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
       </ScrollView>
     </View>
   );
@@ -266,35 +328,39 @@ const styles = StyleSheet.create({
   scroll: { padding: 16, gap: 12, paddingBottom: 110 },
 
   scoreBanner: {
-    borderRadius: 32,
-    padding: 24,
-    alignItems: 'center',
-    gap: 16,
+    borderRadius: 32, padding: 24,
+    minHeight: 350,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
   },
-  gaugeWrap: {
-    width: 240,
-    height: 240,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  gaugeCenter: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scoreNumLarge: { color: '#18332F', fontSize: 56, fontWeight: '800', marginTop: -4 },
-  scoreMaxLabel: { color: 'rgba(0,0,0,0.4)', fontSize: 14, fontWeight: '600', marginTop: -4 },
-  scoreInfo: { alignItems: 'center', gap: 2 },
-  scoreLabel: { color: 'rgba(0,0,0,0.5)', fontSize: 13, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' },
-  scoreRating: { color: '#18332F', fontSize: 16, fontWeight: '700' },
-  scoreTime: { color: 'rgba(0,0,0,0.4)', fontSize: 12, fontWeight: '400' },
-  scoreCircle: { width: 64, height: 64, borderRadius: 32, borderWidth: 3, borderColor: '#9FCC3B', alignItems: 'center', justifyContent: 'center' },
+
+  tipIconRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' },
+  tipIconBubble: { width: 64, height: 64, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.65)', alignItems: 'center', justifyContent: 'center' },
+  tipBadge: { backgroundColor: 'rgba(255,255,255,0.75)', borderRadius: 99, paddingHorizontal: 14, paddingVertical: 6 },
+  tipBadgeText: { fontSize: 10, fontWeight: '800', color: '#5A8A2E', letterSpacing: 0.8 },
+  tipBody: { flex: 1, gap: 10, paddingVertical: 16 },
+  tipDivider: { height: 1.5, backgroundColor: 'rgba(90,138,46,0.2)', borderRadius: 1 },
+  tipHeading: { fontSize: 16, fontWeight: '700', color: 'rgba(0,0,0,0.4)', letterSpacing: 1, textTransform: 'uppercase' },
+  tipTitleText: { fontSize: 22, fontWeight: '800', color: '#18332F', lineHeight: 28 },
+  tipText: { fontSize: 16, fontWeight: '500', color: '#3E5C56', lineHeight: 24 },
+  tipEmoji: { fontSize: 32, marginTop: 4 },
+  tipFooter: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(90,138,46,0.15)' },
+  tipDate: { fontSize: 12, color: 'rgba(0,0,0,0.4)', fontWeight: '500' },
 
   vitalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  vitalCard: { width: '48%', padding: 18, gap: 8, borderRadius: 24, borderWidth: 1, borderColor: Colors.gray[200], backgroundColor: Colors.white },
+  vitalCard: {
+    width: '48%', padding: 18, gap: 8, borderRadius: 24,
+    borderWidth: 1, borderColor: Colors.gray[100], backgroundColor: Colors.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.09,
+    shadowRadius: 12,
+    elevation: 5,
+  },
   vitalVal: { fontSize: 24, fontWeight: '800', color: Colors.gray[800], marginTop: 6 },
   vitalUnit: { fontSize: 12, color: Colors.gray[400], fontWeight: '500' },
   vitalLabel: { fontSize: 13, color: Colors.gray[500], fontWeight: '500' },
+  actionIconBubble: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
 
   sectionCard: { padding: 0, borderWidth: 1, borderColor: Colors.gray[200], backgroundColor: Colors.white, overflow: 'hidden' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, marginBottom: 8 },
@@ -312,8 +378,5 @@ const styles = StyleSheet.create({
   aiSub: { fontSize: 10, color: Colors.cloud[500], marginTop: 2 },
   aiChevron: { fontSize: 24, color: Colors.cloud[800] },
 
-  quickGrid: { flexDirection: 'row', gap: 10 },
-  quickBtn: { flex: 1, backgroundColor: Colors.white, borderRadius: 20, padding: 14, alignItems: 'center', gap: 6, borderWidth: 1, borderColor: Colors.gray[200] },
-  quickEmoji: { fontSize: 24 },
-  quickLabel: { fontSize: 13, fontWeight: '700', color: Colors.gray[700] },
+
 });
